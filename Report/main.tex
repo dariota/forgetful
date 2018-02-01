@@ -1,0 +1,51 @@
+\documentclass{report}
+
+\newcommand{\sign}{
+	\begin{flushleft}
+	\begin{tabular}{p{4in}@{}}
+		\vspace{0.75cm}
+		\hrulefill \\ \vspace{0.2cm}
+		D\'ario Tavares Antunes, \today
+\end{tabular}
+\end{flushleft}}
+
+\usepackage[utf8]{inputenc}
+
+\usepackage[backend=biber,
+style=alphabetic,
+sorting=ynt]{biblatex}
+\addbibresource{references}
+
+\usepackage{graphicx}
+\graphicspath{{img/}}
+
+\begin{document}
+	\input{title}
+
+	\pagenumbering{roman}
+
+	\section*{Declaration}
+	\input{sections/declaration}
+	\pagebreak
+
+	\section*{Permission To Lend}
+	\input{sections/permission}
+	\pagebreak
+
+	\section*{Abstract}
+	\input{sections/abstract}
+	\pagebreak
+
+	\section*{Acknowledgements}
+	\input{sections/acknowledgements}
+	\pagebreak
+
+	\tableofcontents
+	\cleardoublepage
+	\pagenumbering{arabic}
+
+	\chapter{Introduction}
+	\input{chapters/intro}
+	
+	\printbibliography
+\end{document}
