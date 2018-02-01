@@ -1,0 +1,11 @@
+papers/
+Report/**/*.aux
+Report/**/*.bbl
+Report/**/*.bcf
+Report/**/*.blg
+Report/**/*.log
+Report/**/*.out
+Report/**/*.pdf
+Report/**/*.run.xml
+Report/**/*.synctex.gz
+Report/**/*.toc
