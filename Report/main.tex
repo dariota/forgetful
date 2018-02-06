@@ -14,7 +14,8 @@
 \usepackage[backend=biber,
 style=alphabetic,
 sorting=ynt]{biblatex}
-\addbibresource{references}
+\usepackage[nottoc,numbib]{tocbibind}
+\addbibresource{references.bib}
 
 \usepackage{graphicx}
 \graphicspath{{img/}}
@@ -46,6 +47,8 @@ sorting=ynt]{biblatex}
 
 	\chapter{Introduction}
 	\input{chapters/intro}
-	
+
+	\clearpage
+	\addcontentsline{toc}{chapter}{Bibliography}
 	\printbibliography
 \end{document}
