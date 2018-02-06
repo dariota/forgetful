@@ -1,0 +1,23 @@
+#!/bin/sh
+
+# Ensure that we're only using changes from this commit
+git stash -k -u > /dev/null
+
+# Build the pdf in case it changed
+cd Report
+pdflatex main.tex > /dev/null
+cd ..
+
+# Use diffpdf to visually compare the PDFs since the metadata changes
+if ! git difftool -y --trust-exit-code --tool=diffpdf Report/main.pdf 2> /dev/null
+then
+	# Add the PDF and signal to the message hook to add the automatic note
+	git add Report/main.pdf
+	touch .pdf_added
+else
+	# Remove the new pdf to not clutter things
+	git checkout Report/main.pdf
+fi
+
+# Return things to normal
+git stash pop > /dev/null

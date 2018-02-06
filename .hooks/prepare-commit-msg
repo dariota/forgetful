@@ -1,0 +1,13 @@
+#!/bin/sh
+
+COMMIT_MSG_FILE=$1
+COMMIT_SOURCE=$2
+SHA1=$3
+
+# Look for new PDF signal
+if [ -f .pdf_added ]
+then
+	# Add auto note and tidy up
+	echo -e "\n[AUTO] Updated main.pdf as a result of changes to generating files" >> $COMMIT_MSG_FILE
+	rm .pdf_added
+fi
