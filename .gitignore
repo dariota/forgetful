@@ -1,31 +1,32 @@
 # Local copies of papers I can't legally reupload
-papers/
+/papers/
 
 # Generated latex files
-Report/**/*.aux
-Report/**/*.bbl
-Report/**/*.bcf
-Report/**/*.blg
-Report/**/*.log
-Report/**/*.out
-Report/**/*.pdf
-Report/**/*.run.xml
-Report/**/*.synctex.gz
-Report/**/*.toc
+/Report/**/*.aux
+/Report/**/*.bbl
+/Report/**/*.bcf
+/Report/**/*.blg
+/Report/**/*.log
+/Report/**/*.out
+/Report/**/*.pdf
+/Report/**/*.run.xml
+/Report/**/*.synctex.gz
+/Report/**/*.toc
 
 # Generated stuff when building the plugin
-plugin/.Makefile.plugin.generated
-plugin/.depend
-plugin/Forgetful.check_mli_exists
-plugin/Forgetful.cmi
-plugin/Forgetful.cmti
-plugin/META.frama-c-forgetful
-plugin/forgetful_plugin.cmi
-plugin/forgetful_plugin.cmo
-plugin/forgetful_plugin.cmt
-plugin/forgetful_plugin.cmx
-plugin/forgetful_plugin.o
-plugin/top/
+/plugin/.Makefile.plugin.generated
+/plugin/.depend
+/plugin/Forgetful.check_mli_exists
+/plugin/Forgetful.cmi
+/plugin/Forgetful.cmti
+/plugin/META.frama-c-forgetful
+/plugin/*.cmi
+/plugin/*.cmo
+/plugin/*.cmt
+/plugin/*.cmx
+/plugin/*.o
+/plugin/top/
+/plugin/config.out
 
 # vim temp files
-**/*.swp
+*.swp
