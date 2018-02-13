@@ -23,10 +23,14 @@ class print_cfg out = object
     method !vglob_aux g =
         match g with
         | GFun (f,_) ->
-                Format.fprintf out "@[< hov 2> subgraph cluster_%a {@ \
-                                    @[< hv 2> graph@ [label=\"%a\"];@]@ "
-                    Printer.pp_varinfo f.svar Printer.pp_varinfo f.svar;
-                Cil.DoChildrenPost (fun g -> Format.fprintf out "}@]@ "; g)
+                Options.result "func: %s" f.svar.vname;
+                if f.svar.vname = "f" then
+                    let _ = Format.fprintf out "@[< hov 2> subgraph cluster_%a {@ \
+                                        @[< hv 2> graph@ [label=\"%a\"];@]@ "
+                        Printer.pp_varinfo f.svar Printer.pp_varinfo f.svar in
+                    Cil.DoChildrenPost (fun g -> Format.fprintf out "}@]@ "; g)
+                else
+                    Cil.SkipChildren
         | _ -> Cil.SkipChildren
 
     method !vstmt_aux s =
