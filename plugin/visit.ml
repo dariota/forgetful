@@ -24,18 +24,25 @@ class print_cfg out = object
         match g with
         | GFun (f,_) ->
                 Options.result "func: %s" f.svar.vname;
-                if f.svar.vname = "f" then
-                    let _ = Format.fprintf out "@[< hov 2> subgraph cluster_%a {@ \
-                                        @[< hv 2> graph@ [label=\"%a\"];@]@ "
-                        Printer.pp_varinfo f.svar Printer.pp_varinfo f.svar in
-                    Cil.DoChildrenPost (fun g -> Format.fprintf out "}@]@ "; g)
-                else
-                    Cil.SkipChildren
+                Format.fprintf out "@[< hov 2> subgraph cluster_%a {@ \
+                                    @[< hv 2> graph@ [label=\"%a\"];@]@ "
+                    Printer.pp_varinfo f.svar Printer.pp_varinfo f.svar;
+                Cil.DoChildrenPost (fun g -> Format.fprintf out "}@]@ "; g)
         | _ -> Cil.SkipChildren
 
-    method !vstmt_aux s =
-        Format.fprintf out "@[< hov 2> s%d@ [label=%S]@];@ " s.sid (Pretty_utils.to_string print_stmt s.skind);
+    method! vstmt_aux s =
+        let color =
+            if Db.Value.is_computed () then
+                let state = Db.Value.get_stmt_state s in
+                let reachable = Db.Value.is_reachable state in
+                if reachable then
+                    "fillcolor=\"#ccffcc\" style=filled"
+                else
+                    "fillcolor=pink style=filled"
+            else
+                ""
+        in
+        Format.fprintf out "@[s%d@ [label=%S %s]@];@ " s.sid (Pretty_utils.to_string print_stmt s.skind) color;
         List.iter (fun succ -> Format.fprintf out "@[s%d -> s%d;@]@ " s.sid succ.sid) s.succs;
-        Format.fprintf out "@]";
         Cil.DoChildren
 end
