@@ -42,7 +42,20 @@ class print_cfg out = object
             else
                 ""
         in
-        Format.fprintf out "@[s%d@ [label=%S %s]@];@ " s.sid (Pretty_utils.to_string print_stmt s.skind) color;
-        List.iter (fun succ -> Format.fprintf out "@[s%d -> s%d;@]@ " s.sid succ.sid) s.succs;
-        Cil.DoChildren
+            Format.fprintf out "@[s%d@ [label=%S %s]@];@ " s.sid (Pretty_utils.to_string print_stmt s.skind) color;
+            List.iter (fun succ -> Format.fprintf out "@[s%d -> s%d;@]@ " s.sid succ.sid) s.succs;
+        let _ =
+            match s.skind with
+            | Instr i -> ignore (match i with
+                         | Call (_,e,es,_) -> ignore (Options.result "<call> %a"  Printer.pp_exp e);
+                                              ignore (List.iter (fun e -> Options.result "<calls> %a " Printer.pp_exp e) es)
+                         (*
+                          * Looks like mallocs happen in this next one somewhere as opposed to as a call
+                          * This is a result of mallocs always (at least if they're useful) being assigned.
+                          * Can still warn on an unassigned malloc...
+                          * *)
+                         | _ -> ignore (Options.result "not interesting %a" Printer.pp_instr i))
+            | _ -> ignore (Options.result "also not interesting")
+        in
+            Cil.DoChildren
 end
