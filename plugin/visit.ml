@@ -13,6 +13,25 @@ let print_stmt out = function
     | Block _ -> Format.fprintf out "<block> "
     | UnspecifiedSequence _ -> Format.fprintf out "<unspec> "
 
+let printer_str func input = func Format.str_formatter input; Format.flush_str_formatter ()
+
+let rec exp_contains_free (e : exp) : bool = match e.enode with
+    | UnOp (_,e,_) -> exp_contains_free e
+    | BinOp (_,e1,e2,_) -> exp_contains_free e || exp_contains_free e
+    | CastE (_,e) -> exp_contains_free e
+    | Info (e,_) -> exp_contains_free e
+    | _ -> false
+
+let rec stmt_contains_free (s : stmtkind) : bool = match s with
+    | Instr i -> true
+    | Return (e,_) -> true
+    | If (e,bi,be,_) -> true
+    | Switch (e,_,slst,_) -> true
+    | Loop (_,bc,_,scnt,sbrk) -> true
+    | Block b -> true
+    | UnspecifiedSequence us -> stmt_contains_free (Block (Cil.block_from_unspecified_sequence us))
+    | _ -> false
+
 class print_cfg out = object
     inherit Visitor.frama_c_inplace
 
@@ -55,7 +74,7 @@ class print_cfg out = object
                           * Can still warn on an unassigned malloc...
                           * *)
                          | _ -> ignore (Options.result "not interesting %a" Printer.pp_instr i))
-            | _ -> ignore (Options.result "also not interesting")
+            | _ -> ignore (Options.result "also not interesting"); ignore (Options.result "%s" (printer_str Printer.pp_stmt s))
         in
             Cil.DoChildren
 end

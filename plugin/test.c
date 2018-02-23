@@ -2,13 +2,15 @@
 #include <stdlib.h>
 
 int f(int *a) {
+	*a = 0;
 	(*a)++;
 	return *a;
 }
 
 int main(int argc, char* argv) {
 	int *blah = malloc(sizeof(int));
-	if (!blah)
+	int *blah2 = malloc(sizeof(int));
+	if (!blah || !blah2)
 		return 1;
 	int *copy = blah;
 
@@ -22,13 +24,13 @@ int main(int argc, char* argv) {
 		i++;
 	}
 
-	printf("%d\n", *blah);
-	free(blah);
+	malloc(sizeof(int));
+	printf("%p\n", malloc(sizeof(int))+1);
+	free(copy), free(blah2), free(malloc(sizeof(int)));
 
-	int *arg = malloc(sizeof(int));
+	int arg = f(malloc(sizeof(int)));
 	if (!arg) return 1;
 	malloc(sizeof(int));
-	int adjust = f(arg);
 
 	return 3 * i;
 }
