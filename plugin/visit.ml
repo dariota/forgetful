@@ -4,30 +4,36 @@ let opt_string = function
     | None   -> "None"
     | Some s -> s
 
-let rec lhost_contains_dyn_mem (l : lhost) : bool = match l with
-    | Var v -> Options.feedback ~level:2 "Var";
+let varinfo_contains_dyn_mem (v : varinfo) : bool = 
                Options.feedback ~level:2 "varinfo: %s %s %s %b" v.vname v.vorig_name (opt_string v.vdescr) v.vdescrpure;
                v.vorig_name = "malloc" || v.vorig_name = "free"
+
+let rec lhost_contains_dyn_mem (l : lhost) : bool = match l with
+    | Var v -> Options.feedback ~level:2 "Var";
+               varinfo_contains_dyn_mem v
     | _     -> false
-    and exp_contains_dyn_mem (e : exp_node) (s : stmt) : bool = match e with
+    and exp_contains_dyn_mem (e : exp_node) : bool = match e with
     | Lval (h,_) -> Options.feedback ~level:3 "Lval";
                     lhost_contains_dyn_mem h
     | _          -> Options.feedback ~level:3 "wuzz other";
                     false
+let exp_list_contains_dyn_mem (es : exp list) : bool =
+     List.fold_left (||) false (List.map (fun e -> exp_contains_dyn_mem e.enode) es)
 
-let instr_contains_dyn_mem (i : instr) (s : stmt) : bool = match i with
+let local_init_contains_dyn_mem (l : local_init) : bool = match l with
+    | ConsInit (v,es,_) -> varinfo_contains_dyn_mem v || exp_list_contains_dyn_mem es
+    | _                 -> false
+
+let instr_contains_dyn_mem (i : instr) : bool = match i with
     | Call (_,e,es,_) -> Options.feedback ~level:4 "Call";
                          ignore (Options.feedback ~level:4 "e: %a" Printer.pp_exp e);
-                         exp_contains_dyn_mem e.enode s
-                         || (Options.feedback ~level:4 "list";
-                             List.fold_left (||) false (List.map (fun e -> Options.feedback ~level:4 "l: %a" Printer.pp_exp e; exp_contains_dyn_mem e.enode s) es))
-    | Local_init _ -> Options.feedback ~level:4 "Local_init";
-                      (* getting back to this later true; *)
-                      false
-    | _            -> false
+                         exp_contains_dyn_mem e.enode || exp_list_contains_dyn_mem es
+    | Local_init (v,l,_) -> Options.feedback ~level:4 "Local_init";
+                             varinfo_contains_dyn_mem v || local_init_contains_dyn_mem l
+    | _                  -> false
 
 let stmt_contains_dyn_mem (s : stmt) : bool = match s.skind with
-    | Instr i -> instr_contains_dyn_mem i s
+    | Instr i -> instr_contains_dyn_mem i
     | _       -> false
 
 class print_cfg out = object
@@ -57,7 +63,7 @@ class print_cfg out = object
         *)
         let _ =
             if stmt_contains_dyn_mem s then
-                Options.result "Found statement with dynamic memory %a" Printer.pp_stmt s
+                Options.result "Found: %a" Printer.pp_stmt s
             else
                 ();
         in

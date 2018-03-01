@@ -8,7 +8,7 @@ int f(int *a) {
 }
 
 int main(int argc, char* argv) {
-	int *blah = malloc(sizeof(int));
+	int *blah = 1 + malloc(sizeof(int));
 	int *blah2 = malloc(sizeof(int));
 	int **blah3 = malloc(sizeof(int*) * 10);
 	if (!blah || !blah2 || !blah3)
