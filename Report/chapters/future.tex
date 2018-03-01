@@ -1,0 +1,18 @@
+\epigraph{A program is never less than 90\% complete, and never more than 95\% complete.}{Terry Baker}
+
+Any non-trivial work is never complete. To that end, listed below are some ideas for potential improvements on the \emph{forgetful} plugin or related works on the same principle.
+
+\section{Detecting Arbitrary Memory Allocations}
+
+The current implementation only finds allocations based on uses of malloc and free. Other ways to allocate memory exist (\texttt{calloc}, \texttt{realloc}, \texttt{alloca}, direct uses of \texttt{mmap }and \texttt{sbrk}), and platforms that stand to gain the most from this optimisation may have their own implementations.
+
+An extension to this work could involve allowing an arbitrary list of functions declared to allocate or deallocate memory, potentially with fully annotated files specifying their behaviour so that \texttt{frama-c} can be used to its full potential (particularly for value analysis, which relies on these specifications).
+
+Alternatively, if there is a willingness to assume a unix-like platform, the depth of analysis could be extended to attempt to automatically determine which functions might allocate memory by searching for \texttt{mmap} or \texttt{sbrk} calls and propagating annotations indicating functions that directly or indirectly allocate memory.\\
+The approach propagating allocation information already exists in some form in Facebook's Infer \cite{fbinfer} static analyser, so future work could also involve extending that platform instead.
+
+\section{Automatically Performing Fixes}
+
+Ideally, fixes would be automatically generated and patched into the code at compile time, avoiding added complexity from the programmer's point of view while still taking advantage of the performance and memory benefits.
+
+Potential intermediate steps toward that goal could involve generation of patches that could be applied to code before compilation, introducing the optimisation. Fortunately, \texttt{frama-c} already has code generation capabilities which could be taken advantage of for this purpose.
