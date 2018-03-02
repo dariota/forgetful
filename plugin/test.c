@@ -8,11 +8,16 @@ int f(int *a) {
 }
 
 int main(int argc, char* argv) {
-	int *blah = 1 + malloc(sizeof(int));
+	int *blah = malloc(sizeof(int));
 	int *blah2 = malloc(sizeof(int));
-	int **blah3 = malloc(sizeof(int*) * 10);
+	int **blah3 = malloc(sizeof(int*) * 10 + sizeof(malloc(1)));
 	if (!blah || !blah2 || !blah3)
 		return 1;
+	if (malloc(1)) {
+		puts("hi");
+	} else {
+		puts("bye");
+	}
 	blah3[1] = malloc(sizeof(int));
 	int *copy = blah;
 
