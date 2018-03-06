@@ -16,3 +16,9 @@ The approach propagating allocation information already exists in some form in F
 Ideally, fixes would be automatically generated and patched into the code at compile time, avoiding added complexity from the programmer's point of view while still taking advantage of the performance and memory benefits.
 
 Potential intermediate steps toward that goal could involve generation of patches that could be applied to code before compilation, introducing the optimisation. Fortunately, \texttt{frama-c} already has code generation capabilities which could be taken advantage of for this purpose.
+
+\todo{
+\section{Detecting Allocations in Global Initialisations}
+
+(just realised this is a separate section for the program analysis)
+}
