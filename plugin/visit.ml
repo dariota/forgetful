@@ -36,6 +36,13 @@ let is_free (s : stmt) : exp list option = match s.skind with
         | _ -> None)
     | _ -> None
 
+let display_base (b : Base.base) (s : stmt) : unit =
+    match Base.validity b with
+    | Invalid -> Options.feedback ~level:3 "invalid (possibly NULL base)"
+    | _ -> let info = Base.to_varinfo b in
+           Options.feedback ~level:3 "freeing: %a at %a" Printer.pp_varinfo info Printer.pp_location info.vdecl;
+           Options.feedback ~level:3 "%a <> %d" Printer.pp_stmt s (Base.id b)
+
 class print_cfg out = object
     inherit Visitor.frama_c_inplace
 
@@ -50,11 +57,16 @@ class print_cfg out = object
         let free_targets_opt = is_free s
         in
             if is_some free_targets_opt then
-                (Options.result "Found: %a" Printer.pp_stmt s;
+                (Options.feedback ~level:2 "Found free in statement %a" Printer.pp_stmt s;
                 let lval = List.nth (from_option free_targets_opt) 0 in
                 let value = !Db.Value.access_expr (Kstmt s) lval in
+                try (
                 let (b,i) = Locations.Location_Bytes.find_lonely_key value in
-                Options.result "%a <> %d" Printer.pp_stmt s (Base.id b))
+                display_base b s)
+                with
+                | Not_found -> let bases = Locations.Location_Bytes.get_bases value in
+                Base.SetLattice.iter (fun e -> display_base e s) bases
+                )
             else
                 ();
             Cil.DoChildren
