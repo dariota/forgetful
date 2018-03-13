@@ -71,6 +71,18 @@ let is_malloc (s : stmt) : (varinfo * exp list) option = match s.skind with
         | _ -> None)
     | _ -> None
 
+(* adapted from https://stackoverflow.com/a/36138145/6519610 *)
+let get_value_after (s : stmt) (vi : varinfo) : Db.Value.t option =
+  let kinstr = Kstmt s in
+  let lv = Cil.var vi in
+  let loc =
+      !Db.Value.lval_to_loc kinstr ~with_alarms:CilE.warn_none_mode lv
+  in
+  Db.Value.fold_state_callstack
+      (fun state _ ->
+          Some (Db.Value.find state loc)
+      ) None ~after:true kinstr
+
 class print_cfg out = object
     inherit Visitor.frama_c_inplace
 
@@ -82,8 +94,30 @@ class print_cfg out = object
 
     method! vstmt_aux s =
         Options.feedback ~level:5 "Processing statement %a" Printer.pp_stmt s;
-        let free_targets_opt = is_free s
+        let free_targets_opt = is_free s in
+        let malloc_details = is_malloc s
         in
+            if is_some malloc_details then
+                let (target, malloc_list) = from_option malloc_details in
+                let tvalue = from_option (get_value_after s target) in
+                let tbases = Locations.Location_Bytes.get_bases tvalue in
+                (Base.SetLattice.iter (fun e -> Options.result "malloc resultant bases: %a" Base.pretty_addr e) tbases;
+                let exp = List.nth malloc_list 0 in
+                let value = !Db.Value.access_expr (Kstmt s) exp in
+                let (b, i) = Locations.Location_Bytes.find_lonely_key value in
+                let validity = Base.validity b in
+                (if Ival.is_bottom i then
+                    Options.result "Could not determine size of malloc %a" Printer.pp_stmt s
+                else
+                    (match validity with
+                    | Invalid ->
+                        if Ival.is_singleton_int i then
+                            Options.result "Found malloc of size %d in %a" (Integer.to_int (Ival.project_int i)) Printer.pp_stmt s
+                        else
+                            Options.result "Found malloc of size between %d and %d in %a" (Integer.to_int (from_option (Ival.min_int i))) (Integer.to_int (from_option (Ival.max_int i))) Printer.pp_stmt s
+                    | _ -> Options.result "Could not determine size of malloc %a" Printer.pp_stmt s)
+                ))
+            else ();
             if is_some free_targets_opt then
                 (Options.feedback ~level:2 "Found free in statement %a" Printer.pp_stmt s;
                 let exp = List.nth (from_option free_targets_opt) 0 in

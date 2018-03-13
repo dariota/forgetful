@@ -8,9 +8,13 @@ int f(int *a) {
 }
 
 int main(int argc, char* argv) {
+	int sizeDef = rand();
 	int *blah = malloc(sizeof(int));
-	int *blah2 = malloc(sizeof(int));
+	printf("%u\n", &sizeDef + sizeof(int));
+	int *blah2 = malloc(sizeof(int) * sizeDef);
+	int *blah4 = malloc(sizeof(int) + &sizeDef);
 	int **blah3 = malloc(sizeof(int*) * 10 + sizeof(malloc(1)));
+	malloc(0);
 	if (!blah || !blah2 || !blah3)
 		return 1;
 	if (malloc(1)) {
