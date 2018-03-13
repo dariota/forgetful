@@ -23,11 +23,14 @@ let rec get_free_target (es : exp list) : lval =
         | CastE (_,e) -> get_free_target [e]
         | _ -> raise (Options.result "failed on %a" Printer.pp_exp target; Failure "Unexpected target for free")
 
+let varinfo_matches (v : varinfo) (s : string) : bool =
+    v.vorig_name = s
+
 let is_free (s : stmt) : exp list option = match s.skind with
     | Instr i -> (match i with
         | Call (_,e,es,_) -> (match e.enode with
             | Lval (h,_) -> (match h with
-                | Var v -> if v.vorig_name = "free" then
+                | Var v -> if varinfo_matches v "free" then
                                Some es
                            else
                                None
@@ -42,6 +45,39 @@ let display_base (b : Base.base) (s : stmt) : unit =
     | _ -> let info = Base.to_varinfo b in
            Options.feedback ~level:3 "freeing: %a at %a" Printer.pp_varinfo info Printer.pp_location info.vdecl;
            Options.feedback ~level:3 "%a <> %d" Printer.pp_stmt s (Base.id b)
+
+let extract_varinfo_lval (v : lval option) : varinfo option =
+    if is_some v then
+        (let (lh,_) = from_option v in
+        match lh with
+        | Var vi -> Some vi
+        | _ -> None)
+    else
+        None
+
+let is_malloc (s : stmt) : (varinfo * exp list) option = match s.skind with
+    | Instr i -> (match i with
+        | Call (vl,e,es,_) -> (match e.enode with
+            | Lval (h,_) -> (match h with
+                | Var v -> let target = extract_varinfo_lval vl in
+                           if varinfo_matches v "malloc" then
+                               if is_some target then
+                                   Some (from_option target, es)
+                               else
+                                   (Options.feedback ~level:3 "Could not determine target in %a" Printer.pp_stmt s; None)
+                           else
+                               None
+                | _ -> None)
+            | _ -> None)
+        | Local_init (vl,l,_) -> (match l with
+            | ConsInit (v,es,_) ->
+                if varinfo_matches v "malloc" then
+                    Some (vl, es)
+                else
+                    None
+            | _ -> None)
+        | _ -> None)
+    | _ -> None
 
 class print_cfg out = object
     inherit Visitor.frama_c_inplace
