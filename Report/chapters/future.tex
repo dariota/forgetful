@@ -22,3 +22,11 @@ Potential intermediate steps toward that goal could involve generation of patche
 
 (just realised this is a separate section for the program analysis)
 }
+
+\todo{
+\section{Higher Precision in Allocation Sizing Calculations}
+
+Anything that's not an "invalid" validity can't currently be sized properly. The GUI doesn't currently handle this either, simply saying it's an expression of type unsigned int without value information.
+
+Pointers are assumed to be 4 bytes, which is a frama-c default. This could lead to significant inaccuracies building up (generally limited to factors of two).
+}
