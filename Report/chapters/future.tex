@@ -30,3 +30,7 @@ Anything that's not an "invalid" validity can't currently be sized properly. The
 
 Pointers are assumed to be 4 bytes, which is a frama-c default. This could lead to significant inaccuracies building up (generally limited to factors of two).
 }
+
+\section{Studying Other Architectures}
+
+For the sake of practicality and convenience, the analysis presented was only performed on a single x86 machine. To be certain whether these results apply more generally, the analysis should also be performed on other architectures (for example: ARM, x64, embedded systems without address translation/paging, SPARC).
