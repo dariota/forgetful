@@ -1,4 +1,5 @@
 #include "benchmark.h"
+#include "nqsort.h"
 
 int compare_item(const void *i1, const void *i2) {
 	if (i1 == i2) return 0;
@@ -19,7 +20,7 @@ void perform_busy_work(size_t len, bench_item* items, bench_item *target) {
 		target[i] = items[i];
 	}
 
-	qsort(target, len, sizeof(bench_item), compare_item);
+	nqsort(target, len, sizeof(bench_item), compare_item);
 }
 
 void benchmark_with_malloc(size_t len, bench_item* items) {
