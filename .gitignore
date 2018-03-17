@@ -31,3 +31,8 @@
 # vim temp files
 *.swp
 /plugin/cfg.out
+
+# C build output
+*.o
+*.so
+*.out
