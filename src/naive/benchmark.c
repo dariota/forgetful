@@ -36,7 +36,7 @@ void benchmark_with_stack(size_t len, bench_item* items) {
 
 void benchmark_with_dynamic(size_t len, bench_item* items) {
 	bench_item* target;
-	if (len < MAX_COUNT(bench_item)) {
+	if (len <= MAX_COUNT(bench_item)) {
 		bench_item target_target[MAX_COUNT(bench_item)];
 		target = &target_target[MAX_COUNT(bench_item) - len];
 	} else {
@@ -45,7 +45,7 @@ void benchmark_with_dynamic(size_t len, bench_item* items) {
 
 	perform_busy_work(len, items, target);
 
-	if (len >= MAX_COUNT(bench_item)) {
+	if (len > MAX_COUNT(bench_item)) {
 		free(target);
 	}
 }

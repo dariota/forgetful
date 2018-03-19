@@ -35,7 +35,7 @@ int main(int argc, char *argv[]) {
 		}
 	} else {
 		printf("Usage: %s [runs]\n"
-		       "\tRuns the benchmark, calling each function 'runs' times, or 10000 times if omitted.",
+		       "\tRuns the benchmark, calling each function 'runs' times, or 10000 times if omitted.\n",
 			   argv[0]);
 		return 1;
 	}
