@@ -1,5 +1,14 @@
 import csv
 
+def dump_outliers(values):
+    length = len(values)
+    if length < 5:
+        return values
+
+    target_len = 4 + (length % 2)
+    to_drop = int((length - target_len) / 2)
+    return values[to_drop:(length - to_drop)]
+
 csvs = {}
 
 for i in range(0, 4):
@@ -39,7 +48,7 @@ for olevel in results:
             else:
                 i_stats = computed[olevel][i_count]
 
-            current = results[olevel][memtype][i_count]
+            current = dump_outliers(sorted(results[olevel][memtype][i_count]))
             i_stats["avgs"].append((sum(current) / len(current), memtype))
             i_stats["maxs"].append((max(current), memtype))
             i_stats["mins"].append((min(current), memtype))
