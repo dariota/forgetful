@@ -6,6 +6,8 @@
 #include "benchmark.h"
 
 #define TIME_SEC 2
+#define THREAD_COUNT 4
+#define BENCH_COUNT 10
 
 union function_option {
 	void (*bench_func)(size_t,bench_item*);
@@ -58,12 +60,12 @@ void show_time(const char * description, size_t items, struct timeval start, str
 }
 
 void run_benchmark(const char *description, size_t *lens, bench_item **items, bench_item **extra_items, union function_option bench_func) {
-	for (int i = 0; i < 8; i++) {
+	for (int i = 0; i < BENCH_COUNT; i++) {
 		volatile int done = 0;
 		volatile int start = 0;
-		pthread_t threads[4];
-		struct bench_info info[4];
-		for (int j = 0; j < 4; j++) {
+		pthread_t threads[THREAD_COUNT];
+		struct bench_info info[THREAD_COUNT];
+		for (int j = 0; j < THREAD_COUNT; j++) {
 			info[j].done = &done;
 			info[j].start = &start;
 			info[j].len = lens[i];
@@ -86,7 +88,7 @@ void run_benchmark(const char *description, size_t *lens, bench_item **items, be
 		gettimeofday(&current_t, NULL);
 
 		long int total = 0;
-		for (int j = 0; j < 4; j++) {
+		for (int j = 0; j < THREAD_COUNT; j++) {
 			void *retval = 0;
 			pthread_join(threads[j], &retval);
 			total += (long int) retval;
@@ -121,11 +123,11 @@ int main(int argc, char *argv[]) {
 
 	srand(time(NULL));
 
-	size_t lens[8] = {1, 8, 32, 64, 128, 256, 512, 8196};
-	bench_item *items[8];
-	bench_item *extra_items[8];
-	bench_item *null_items[8];
-	for (int i = 0; i < 8; i++) {
+	size_t lens[BENCH_COUNT] = {1, 2, 4, 8, 16, 32, 64, 128, 256, 512};
+	bench_item *items[BENCH_COUNT];
+	bench_item *extra_items[BENCH_COUNT];
+	bench_item *null_items[BENCH_COUNT];
+	for (int i = 0; i < BENCH_COUNT; i++) {
 		items[i] = malloc(sizeof(bench_item) * lens[i]);
 		extra_items[i] = malloc(sizeof(bench_item) * lens[i]);
 		while (extra_items[i] - items[i] < 10000) {

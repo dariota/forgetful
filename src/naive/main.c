@@ -3,6 +3,8 @@
 
 #include "benchmark.h"
 
+#define BENCH_COUNT 10
+
 void show_time(clock_t start, const char * description, size_t items) {
 	clock_t end = clock();
 	double total = ((double)(end - start)) / CLOCKS_PER_SEC;
@@ -11,7 +13,7 @@ void show_time(clock_t start, const char * description, size_t items) {
 }
 
 void run_benchmark(const char *description, long int runs, size_t *lens, bench_item **items, void (*bench_func)(size_t, bench_item*)) {
-	for (int i = 0; i < 8; i++) {
+	for (int i = 0; i < BENCH_COUNT; i++) {
 		size_t len = lens[i];
 		clock_t start = clock();
 		for (long int j = 0; j < runs; j++) {
@@ -47,9 +49,9 @@ int main(int argc, char *argv[]) {
 
 	srand(time(NULL));
 
-	size_t lens[8] = {1, 8, 32, 64, 128, 256, 512, 8196};
-	bench_item *items[8];
-	for (int i = 0; i < 8; i++) {
+	size_t lens[BENCH_COUNT] = {1, 2, 4, 8, 16, 32, 64, 128, 256, 512};
+	bench_item *items[BENCH_COUNT];
+	for (int i = 0; i < BENCH_COUNT; i++) {
 		items[i] = malloc(sizeof(bench_item) * lens[i]);
 		for (size_t j = 0; j < lens[i]; j++) {
 			items[i][j].id = j;
@@ -57,7 +59,7 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	for (int i = 0; i < 8; i++) {
+	for (int i = 0; i < BENCH_COUNT; i++) {
 		size_t len = lens[i];
 		bench_item *target = malloc(sizeof(bench_item) * lens[i]);
 		clock_t start = clock();
