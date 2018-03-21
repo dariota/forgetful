@@ -36,3 +36,6 @@
 *.o
 *.so
 *.out
+
+# generated processed results files
+processedO?.csv
