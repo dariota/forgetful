@@ -40,7 +40,7 @@ def process_csv(csv):
 csvs = {}
 
 # read in the 4 different results files for the various optimisation levels
-for i in range(0, 2):
+for i in range(0, 4):
     csvs["O{}".format(i)] = csv.reader(open("resultsO{}.csv".format(i)))
 
 results = {}
@@ -65,36 +65,38 @@ computed = {}
 for olevel in results:
     computed[olevel] = {}
     for memtype in results[olevel]:
-        if memtype != "EXTERNAL":
-            for i_count in results[olevel][memtype]:
-                i_stats = None
-                if i_count not in computed[olevel]:
-                    i_stats = {
-                        "mins": [],
-                        "avgs": [],
-                        "maxs": []
-                    }
-                    computed[olevel][i_count] = i_stats
-                else:
-                    i_stats = computed[olevel][i_count]
+        for i_count in results[olevel][memtype]:
+            i_stats = None
+            if i_count not in computed[olevel]:
+                i_stats = {
+                    "mins": [],
+                    "avgs": [],
+                    "maxs": []
+                }
+                computed[olevel][i_count] = i_stats
+            else:
+                i_stats = computed[olevel][i_count]
 
-                current = dump_outliers(sorted(results[olevel][memtype][i_count], reverse=True))
-                i_stats["avgs"].append((sum(current) / len(current), memtype))
-                i_stats["maxs"].append((max(current), memtype))
-                i_stats["mins"].append((min(current), memtype))
+            current = dump_outliers(sorted(results[olevel][memtype][i_count], reverse=True))
+            i_stats["avgs"].append((sum(current) / len(current), memtype))
+            i_stats["maxs"].append((max(current), memtype))
+            i_stats["mins"].append((min(current), memtype))
 
 for olevel in computed:
     writer = csv.writer(open("processed{}.csv".format(olevel), "w"))
-    writer.writerow(["Items", "Stack/Malloc Min", "Dynamic/Malloc Min", "Stack/Malloc Avg", "Dynamic/Malloc Avg", "Stack/Malloc Max", "Dynamic/Malloc Max"])
+    writer.writerow(["Items", "External Min", "Stack Min", "Dynamic Min", "External Avg", "Stack Avg", "Dynamic Avg", "External Max", "Stack Max", "Dynamic Max"])
 
     for i_count in computed[olevel]:
         row = [i_count]
         for category in ["mins", "avgs", "maxs"]:
+            external = None
             stack = None
             dynamic = None
             malloc = None
 
             for ops_tuple in computed[olevel][i_count][category]:
+                if ops_tuple[1] == "EXTERNAL":
+                    external = ops_tuple[0]
                 if ops_tuple[1] == "STACK":
                     stack = ops_tuple[0]
                 if ops_tuple[1] == "DYNAMIC":
@@ -102,6 +104,7 @@ for olevel in computed:
                 if ops_tuple[1] == "MALLOC":
                     malloc = ops_tuple[0]
 
+            row.append(external / malloc)
             row.append(stack / malloc)
             row.append(dynamic / malloc)
         writer.writerow(row)
