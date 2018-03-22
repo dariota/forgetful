@@ -59,7 +59,7 @@ void show_time(const char * description, size_t items, struct timeval start, str
 	printf("%s,%u,%f,%ld\n", description, items, (secs + (usecs / 1000000.0)), actions);
 }
 
-void run_benchmark(const char *description, size_t *lens, bench_item **items, bench_item **extra_items, union function_option bench_func) {
+void run_benchmark(const char *description, size_t *lens, bench_item **items, bench_item *extra_items[THREAD_COUNT][BENCH_COUNT], union function_option bench_func) {
 	for (int i = 0; i < BENCH_COUNT; i++) {
 		volatile int done = 0;
 		volatile int start = 0;
@@ -70,7 +70,7 @@ void run_benchmark(const char *description, size_t *lens, bench_item **items, be
 			info[j].start = &start;
 			info[j].len = lens[i];
 			info[j].items = items[i];
-			info[j].extra_items = extra_items[i];
+			info[j].extra_items = extra_items[j][i];
 			info[j].func = bench_func;
 			pthread_create(&threads[j], NULL, worker, &info[j]);
 		}
@@ -125,15 +125,30 @@ int main(int argc, char *argv[]) {
 
 	size_t lens[BENCH_COUNT] = {1, 2, 4, 8, 16, 32, 64, 128, 256, 512};
 	bench_item *items[BENCH_COUNT];
-	bench_item *extra_items[BENCH_COUNT];
-	bench_item *null_items[BENCH_COUNT];
+	bench_item *extra_items[THREAD_COUNT][BENCH_COUNT];
+	for (int i = 0; i < THREAD_COUNT; i++) {
+		extra_items[i][0] = malloc(sizeof(bench_item) * lens[BENCH_COUNT - 1]);
+	}
+	bench_item *null_items[THREAD_COUNT][BENCH_COUNT];
 	for (int i = 0; i < BENCH_COUNT; i++) {
 		items[i] = malloc(sizeof(bench_item) * lens[i]);
-		extra_items[i] = malloc(sizeof(bench_item) * lens[i]);
-		while (extra_items[i] - items[i] < 10000) {
-			extra_items[i] = malloc(sizeof(bench_item) * lens[i]);
+		for (int j = 0; j < THREAD_COUNT; j++) {
+			null_items[j][i] = NULL;
+			extra_items[j][i] = extra_items[j][0];
 		}
-		null_items[i] = NULL;
+
+		// avoid false sharing
+		int acceptable_diff = 0;
+		do {
+			long int min_diff = abs(extra_items[0][i] - items[i]);
+			for (int j = 1; j < THREAD_COUNT; j++) {
+				long int diff = abs(extra_items[j][i] - items[i]);
+				if (diff < min_diff) min_diff = diff;
+			}
+			if (min_diff >= 100000) acceptable_diff = 1;
+			items[i] = malloc(sizeof(bench_item) * lens[i]);
+		} while (!acceptable_diff);
+
 		for (size_t j = 0; j < lens[i]; j++) {
 			items[i][j].id = j;
 			items[i][j].value = rand();
