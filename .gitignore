@@ -39,3 +39,6 @@
 
 # generated processed results files
 processedO?.csv
+
+# built curl executables
+/src/curl/curl-*
