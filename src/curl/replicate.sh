@@ -47,3 +47,23 @@ then
 	cd ..
 	rm -rf curl
 fi
+
+set +e
+mkdir -p testserver
+cd testserver
+truncate -s 25G 25G
+python -m http.server > /dev/null 2> /dev/null &
+SERVER_PID=$!
+sleep 1
+cd ..
+
+mkdir -p timings
+for j in {1..10}
+do
+	for i in curl-*
+	do
+		(time ./$i -Ss http://localhost:8000/25G -o /dev/null) 2>> timings/$i-time
+	done
+done
+
+kill $SERVER_PID
