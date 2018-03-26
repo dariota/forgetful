@@ -62,7 +62,7 @@ for j in {1..10}
 do
 	for i in curl-*
 	do
-		(time ./$i -Ss http://localhost:8000/25G -o /dev/null) 2>> timings/$i-time
+		(time ./$i -Ss http://localhost:8000/25G -o /dev/null) 2>> timings/$i
 	done
 done
 
