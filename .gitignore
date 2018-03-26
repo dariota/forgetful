@@ -42,3 +42,6 @@ processedO?.csv
 
 # built curl executables
 /src/curl/curl-*
+
+# testserver with huge files in it
+/src/curl/testserver
