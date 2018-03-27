@@ -39,6 +39,7 @@
 
 # generated processed results files
 processedO?.csv
+/src/curl/*-times.csv
 
 # built curl executables
 /src/curl/curl-*
