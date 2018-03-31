@@ -1,0 +1,17 @@
+body {
+	margin: 40px auto;
+	max-width: 800px;
+	line-height: 1.6;
+	font-size: 18px;
+	color: #444;
+	padding: 10px;
+	background-color: #E0E0E0;
+}
+
+h1, h2, h3 {
+	line-height: 1.2
+}
+
+img.forgetful {
+	max-width: 100%;
+}
