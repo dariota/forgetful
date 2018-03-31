@@ -76,7 +76,7 @@
 		<p>For 64 or more items, the dynamic allocator falls back to <code>malloc</code>, along with the added (small) overhead of determining whether to use <code>malloc</code> or the stack. However, with the benchmark running multiple times with the same conditions, the branch predictor should be able to effectively optimise that out, leaving it equivalent to <code>malloc</code>. The rest should remain relatively unchanged.</p>
 		<p>In general, performance of all allocators should converge as the number of items increases and relatively less time is spent in allocation.</p>
 		<h3>Results for sort benchmark:</h3>
-		<p><strong>Note:</strong> values less than 1 outperform <code>malloc</code>.</p>
+		<p>Note: values <strong>less than 1</strong> outperform <code>malloc</code>.</p>
 		<figure>
 			<img src="img/naive/O0chart.png" class="forgetful"/>
 			<figcaption>Unexpectedly, <code>alloca</code> performs <strong>worse</strong> than <code>malloc</code>. Others perform as expected. From inspecting the generated assembly, it looks like <code>-O0</code> produces very inefficient code for <code>alloca</code>.</figcaption>
@@ -98,7 +98,7 @@
 			<figcaption>Same as the above with <code>-fno-inline-functions</code>.</figcaption>
 		</figure>
 		<h3>Results for parallel benchmark:</h3>
-		<p><strong>Note:</strong> values greater than 1 outperform <code>malloc</code>.</p>
+		<p>Note: values <strong>greater than 1</strong> outperform <code>malloc</code>.</p>
 		<figure>
 			<img src="img/parallel/O0chart.png" class="forgetful"/>
 			<figcaption><code>alloca</code> underperforming again, other two performing as expected.</figcaption>
