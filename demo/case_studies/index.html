@@ -1,0 +1,126 @@
+<html>
+	<head>
+		<title>ntun.es - forgetful project - Case Studies</title>
+		<link rel="stylesheet" type="text/css" href="/styles/default.css">
+	</head>
+	<body>
+		<h1>Case Studies</h1>
+		<p>I'm comparing the performance of various ways to allocate memory compared to <code>malloc</code>.</p>
+		<p>
+			In order to gather some data on this, two case studies were done.
+			<ol>
+				<li>Specialised benchmarks - Some benchmark code designed to exhibit the best case for replacement of <code>malloc</code> with an alternative</li>
+				<li>cURL benchmarks - A real world example from cURL where <code>malloc</code> was replaced with what the specialised benchmarks call dynamic and external allocation</li>
+			</ol>
+		</p>
+		<h2>Specialised Benchmarks</h2>
+		<p>There are two benchmarks, the source of which are in <a href="https://github.com/dariota/forgetful/tree/master/src">the project repo</a>.
+			<ol>
+				<li>
+					The sort benchmark is light on allocations, and performs the following a fixed number of times (10-20 thousand times per allocation type).</br>
+					It performs one single allocation, then copies input data (a struct containing a random int and a sequential ID, which is populated but never used) into that buffer before sorting the data, using the random int as the key.</br>
+					To sort, it uses <a href="https://android.googlesource.com/platform/bionic.git/+/eclair-release/libc/stdlib/qsort.c">this qsort</a>, as <a href="https://github.com/KDE/heaptrack">heaptrack</a> indicated that the stdlib qsort (from glibc2.26-11 on Arch Linux) was performing a significant number of allocations, which were affecting the benchmark. I'll be investigating this later, should I have time.
+				</li>
+				<li>
+					The parallel benchmark is heavy on allocations and parallelism, light on other behaviour. It executes for a fixed amount of time (executing once, then checking a flag for whether it should continue, and so on).</br>
+					Each execution allocates a buffer, and then copies all the values over from the input buffer. This is done by 4 threads in parallel (all copying from the same input buffer to different target buffers), to maximise contention of <code>malloc</code>'s lock.</br>
+					The number of times it executes is tracked, then the number of operations per second is determined (in case execution continued past the fixed amount of time if the timing thread was asleep).
+				</li>
+			</ol>
+		</p>
+		<p>
+		The types of allocation are explained below:
+			<ul>
+				<li>Dynamic - Uses a fixed size stack allocated buffer, and if the input data doesn't fit in that buffer it uses <code>malloc</code> instead. The static buffer in these benchmarks is of 64 items</li>
+				<li>External - Rather than allocating its own buffer, uses one that's passed in. Intended as a control, as no allocation is done</li>
+				<li>Malloc - Uses <code>malloc</code></li>
+				<li>Stack - Uses <code>alloca</code></li>
+			</ul>
+		<p>
+		<h3>Predictions:</h3>
+		<p>Performance is expected to roughly follow the following for 64 or less items:
+		<ol>
+			<li>External: As the control, performing no allocations, it should perform fastest as it's plainly doing less work</li>
+			<li>Stack: Allocating on the stack should be fast, and for the benchmark allocations are simply performed using alloca</li>
+			<li>Dynamic: Should perform similarly to stack, or possibly faster depending on how efficient alloca is (as the space can be allocated along with the rest of the stack frame)</li>
+			<li>Malloc: Has to perform all the usual work in order to produce space, so should be slowest</li>
+		</ol>
+		</p>
+		<p>For 64 or more items, the dynamic allocator falls back to <code>malloc</code>, along with the added (small) overhead of determining whether to use <code>malloc</code> or the stack. However, with the benchmark running multiple times with the same conditions, the branch predictor should be able to effectively optimise that out, leaving it equivalent to <code>malloc</code>. The rest should remain relatively unchanged.</p>
+		<p>In general, performance of all allocators should converge as the number of items increases and relatively less time is spent in allocation.</p>
+		<h3>Results for sort benchmark:</h3>
+		<p>Note: values <strong>less than 1</strong> outperform <code>malloc</code>.</p>
+		<figure>
+			<img src="img/naive/O0chart.png" class="forgetful"/>
+			<figcaption>Unexpectedly, <code>alloca</code> performs <strong>worse</strong> than <code>malloc</code>. Others perform as expected. From inspecting the generated assembly, it looks like <code>-O0</code> produces very inefficient code for <code>alloca</code>.</figcaption>
+		</figure>
+		<figure>
+			<img src="img/naive/O1chart.png" class="forgetful"/>
+			<figcaption>Everything performing mostly as expected. Stack and dynamic seem to perform very similarly, with dynamic unexpectedly underperforming <code>malloc</code> even before falling back to <code>malloc</code> itself. This happens around the same time as the other methods converge with <code>malloc</code>.</figcaption>
+		</figure>
+		<figure>
+			<img src="img/naive/O2chart.png" class="forgetful"/>
+			<figcaption>Everything mostly as expected. Dynamic shouldn't be faster than stack, but they're close enough after the first item that I'm not too concerned.</figcaption>
+		</figure>
+		<figure id="inlineissue">
+			<img src="img/naive/O3chart.png" class="forgetful"/>
+			<figcaption>This one's weird. Dynamic performing even worse than <code>alloca</code> did with <code>-O0</code>. Tracked it down to something to do with <code>-finline-functions</code>. It turns out that the dynamic benchmark is split into two cases - one for when the stack is used, another for when malloc is used - and the correct case jumped to at the start. When the perform_busy_work function gets inlined, it gets optimised to a call to memcpy followed by a call to nqsort, but only in the malloc case. This means that the stack case performs worse by comparison as it's using a less efficient method to copy the buffers over.</figcaption>
+		</figure>
+		<figure>
+			<img src="img/naive/O3chart-no-inline.png" class="forgetful"/>
+			<figcaption>Same as the above with <code>-fno-inline-functions</code>.</figcaption>
+		</figure>
+		<h3>Results for parallel benchmark:</h3>
+		<p>Note: values <strong>greater than 1</strong> outperform <code>malloc</code>.</p>
+		<figure>
+			<img src="img/parallel/O0chart.png" class="forgetful"/>
+			<figcaption><code>alloca</code> underperforming again, other two performing as expected.</figcaption>
+		</figure>
+		<figure>
+			<img src="img/parallel/O1chart.png" class="forgetful"/>
+			<figcaption>Stack and dynamic performing almost identically, unusually.</figcaption>
+		</figure>
+		<figure>
+			<img src="img/parallel/O2chart.png" class="forgetful"/>
+			<figcaption>The benchmark functions other than external get optimised out, so this bit's irrelevant.</figcaption>
+		</figure>
+		<figure>
+			<img src="img/parallel/O3chart.png" class="forgetful"/>
+			<figcaption>The benchmark functions other than external get optimised out, so this bit's irrelevant.</figcaption>
+		</figure>
+		<h2>cURL Benchmarks</h2>
+		<p>Comparing two commits mentioned in the <a href="https://daniel.haxx.se/blog/2017/04/22/fewer-mallocs-in-curl/">Fewer mallocs in curl</a> blog post to their parent commits, in order to isolate their effect on performance.</p>
+		<p>In the blog post, the changes are lumped together with a number of other changes in between releases of cURL when doing benchmarking, which could obscure the impact of the changes of interest.</p>
+		<p>In these benchmarks, the changes are compared directly to their parent commit in order to isolate their impact. The binary built from a given commit performs a download from a local server, then compared to that same download when performed by the binary built from the parent commit.</p>
+		<h3>multi-wait changes</h3>
+		<p>The multi-wait library function was changed to use the stack instead of <code>malloc</code> in a common case where a small amount of data is allocated. This cut down (according to Stenberg's own measurements) the number of <code>malloc</code>s in a simple test by 99.67% (order of tens of thousands to order of hundreds).</p>
+		<p>In order to test this, the <code>multi-single.c</code> example was modified to download from 1 or 11 file descriptors (as the limit on wulti-wait puts up to 10 file descriptors on the stack), then used to download a 1GB empty file from a local python server and writing it to <code>/dev/null</code>. This method is the same as used by Stenberg in his blogpost, other than the fact he made requests to only two URLs (one local, one remote).</p>
+		<p>The times are then compared to the times taken to do the same in the parent commit. The case using 11 items should perform identically to the parent commit.</p>
+		<h3>llist changes</h3>
+		<p>cURL's linked list implementation was modified so that the generic linked list functions performed no allocation. This was done by redesigning the struct so that the linked list node struct was merged with the data struct, allowing the allocation for both to be done at once. This caused a reduction in number of <code>malloc</code>s by 16% (order of hundreds to order of tens) in a simple benchmark, according to Stenberg's measurements.</p>
+		<p>However, there are some other impacts of the changes made in that commit, such as the fact that the generic linked list functions can no longer fail for lack of memory, which reduces the number of checks required. There are also some other small changes, such as an initialisation function being changed from a guarded <code>malloc</code>+<code>memset</code> to <code>calloc</code>. All of these changes could impact the performance difference.</p>
+		<p>Tests for curl-llist were run against a local python server, downloading a single 25GB empty file and writing it to <code>/dev/null</code>.</p>
+		<h3>Results</h3>
+		<p>Note: values <strong>less than 1</strong> outperform the parent commit.</p>
+		<p>Times are as given by the <code>time</code> <code>bash</code> builtin.</br>
+			<ul>
+				<li>Real - Wall clock time elapsed (i.e. actual time from start to finish)</li>
+				<li>Sys - CPU time spent in the kernel</li>
+				<li>User - CPU time spent outside the kernel</li>
+			</ul>
+		</p>
+		<p>When producing graphs for the results, only the four median values for each type of time are taken from 100 runs.</p>
+		<figure>
+			<img src="img/curl/ratio-real.png" class="forgetful"/>
+			<figcaption>Nothing varies by more than 0.5%. The only one that performs better is the one that should perform identically, suggesting that any performance benefit is shadowed by random outside effects.</figcaption>
+		</figure>
+		<figure>
+			<img src="img/curl/ratio-sys.png" class="forgetful"/>
+			<figcaption>Sys time should in theory decrease in the first two cases, as less <code>malloc</code>s should mean less time spent in kernel code (such as <code>brk</code>/<code>sbrk</code>/<code>mmap</code>). Once again, the maximum variation is 0.6%, but in the wrong direction compared to predictions.</figcaption>
+		</figure>
+		<figure>
+			<img src="img/curl/ratio-user.png" class="forgetful"/>
+			<figcaption>The llist case should decrease in time thanks to simplified code due to removal of <code>malloc</code>s and use of more efficient library functions (<code>calloc</code> instead of <code>malloc</code> and <code>memset</code>. For the multi-wait case, user time shouldn't really change. This is mostly met, particularly in the llist case.</figcaption>
+		</figure>
+	</body>
+</html>
