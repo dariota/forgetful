@@ -4,14 +4,14 @@
 		<link rel="stylesheet" type="text/css" href="/styles/default.css">
 	</head>
 	<body>
-		<h1>Forgetful Plugin</h1>
+		<h1 id="forgetful-plugin">Forgetful Plugin</h1>
 		<p>One of the goals of the project was to develop a tool that would detect sites in existing code where a short-lived dynamic allocation could be replaced with a stack allocation. Ideally, a patch would also be generated that could be applied (at or just before compile time, so as to not clutter the code).</p>
 		<p>In order to simplify the development of this tool, a static analysis tool to extend needed to be chosen. The <a href="http://frama-c.com">Frama-C</a> platform was chosen for its design which emphasises modularity and extensibility.</p>
-		<h2>Frama-C Platform</h2>
+		<h2 id="frama-c-platform">Frama-C Platform</h2>
 		<p>Frama-C places an emphasis on correctness of the analysis, allowing plugins to annotate the constructed AST with things such as: proof burdens for other plugins to fulfil; metadata about values and expressions; and completed proofs (using Hoare-style weakest precondition computations and standard proof assistants), called properties.</p>
 		<p>This system of communication allows plugins to take advantage of information computed by other plugins, and hence the emphasis placed on modularity.</p>
 		<p>Frama-C is written in OCaml and unfortunately suffers from a lack of documentation for the usage of its core plugins. Plugin development itself, however, is reasonably well documented.</p>
-		<h3>Evolved Value Analysis (EVA)</h3>
+		<h3 id="evolved-value-analysis-eva">Evolved Value Analysis (EVA)</h3>
 		<p>The EVA plugin is of particular interest as it provides ranges or sets of possible values for variables. This can be used to track the result of an allocation through a function and help to determine its lifetime. It also works well in conjuction with the semantic constant folding to capture allocations performed in loops.</p>
 		<p>EVA can also be used to determine potential sizes of allocations, though the effectiveness of this analysis is unlikely to be high as code is unlikely to have constraints defined in the source to assist the analysis. Additionally, EVA cannot determine the relative frequency of different allocation sizes as well, meaning that a site could be suggested despite it only performing small allocations a small minority of the time.</p>
 		<p>By joining lifetime detection with allocation size prediction, sites of small, transient allocations can be found and highlighted to the user who can then determine whether they're worth changing.</p>
