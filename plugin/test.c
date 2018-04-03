@@ -36,7 +36,7 @@ int main(int argc, char* argv) {
 
 	int i = 0;
 	while (!i) {
-		printf("Fuck y'all.\n");
+		printf("Hello again.\n");
 		i++;
 	}
 
