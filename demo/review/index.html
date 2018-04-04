@@ -1,0 +1,39 @@
+<html>
+	<head>
+		<meta charset="utf-8"/>
+		<title>ntun.es - forgetful project - Literature Review/State of the Art</title>
+		<link rel="stylesheet" type="text/css" href="/styles/default.css">
+	</head>
+	<body>
+		<h1 id="literature-reviewstate-of-the-art">Literature Review/State of the Art</h1>
+		<p>There are a number of aspects to consider when determining what the appropriate literature/state of the art is.</p>
+		<p>For</p>
+		<ul>
+		<li>Comparison of the plugin and the platform it built on: other static analysis tools</li>
+		<li>Alternative methods to approach the problem: profiling and runtime tools</li>
+		<li>Allocator methods and their performance: papers comparing them</li>
+		<li>Validation of the project space: alternative allocation methods and allocators to reduce allocation burden</li>
+		<li>Discussion of results: typical performance increase from compiler optimisations</li>
+		</ul>
+		<h2 id="plugin-and-its-platform">Plugin and its Platform</h2>
+		<p>(fb infer, others?)</p>
+		<h2 id="alternative-approaches">Alternative Approaches</h2>
+		<p>(heaptrack, custom allocator/profiling, others?)</p>
+		<h2 id="allocator-methods-and-their-performance">Allocator Methods and their Performance</h2>
+		<p>(heap v stack, mallocperf)</p>
+		<h2 id="validation-of-project-space">Validation of Project Space</h2>
+		<p>(uniprocessor, predictors)</p>
+		<h2 id="results">Results</h2>
+		<p>There are two sets of results to discuss (one for each of the case studies). While the real world case study was less than impressive, there are a few points to moderate it.</p>
+		<h3 id="specialised-benchmarks">Specialised Benchmarks</h3>
+		<p>The specialised benchmarks, being constructed to be an ideal case, clearly validate that the optimisation can be worthwhile in specific cases.</p>
+		<p>That being said, they also serve a reminder that even in simple code there may be hidden issues and complexity, in particular <code>alloca</code>'s performance under <code>O0</code> in both the parallel and sort benchmarks and the unexpected drop in the dynamic method's performance under <code>O3</code> in the sort benchmark.</p>
+		<p>Lastly, it also highlights that in certain cases the optimisation makes no performance difference (a wash by 16 items in the sort benchmark, minimal by 64 items in the parallel benchmark) in certain cases while still having the negative effects (very large stack, increased risk of stack overflow, programmer error leading to escaping pointers to stack allocated items).</p>
+		<h3 id="curl-benchmarks">cURL Benchmarks</h3>
+		<p>With Stenberg's claims about performance increases and removal huge amounts of <code>malloc</code>s, the results found are quite disappointing, being indistinguishable from variance in the test environment itself.</p>
+		<p>However, this doesn't mean the optimisation isn't worth performing. Compiler optimisations produce minimal performance benefits over time, and build up mutually to more significant gains over time and in conjuction with each other.</p>
+		<p>This was somewhat formalised by <a href="http://proebsting.cs.arizona.edu/law.html">Proebsting's Law</a> (Todd A. Proebsting of University of Arizona), which claimed &quot;compiler optimization advances double computing power every 18 years&quot;, with figures chosen to reasonably match up with the better known Moore's Law. This is equivalent to 4% increases per year, which makes even vanishingly small improvements in any given case seem better by comparison.</p>
+		<p>Proebsting's law is further researched in <em>On Proebsting’s law, Scott, 2001</em>, in which Scott finds it to most likely be true, producing a range of possibly figures for yearly improvement between 2.8-4.9% depending on a few factors.<br />
+		However, this doesn't mean optimisations aren't worthwhile. He also refers to a lecture by Bill Pugh (University of Maryland) titled <em>Is Code Optimization (Research) Relevant</em>, created in response to Proebsting's Law, in which Pugh argues no one will turn down a free performance improvement from compiler optimisations, but suggests that focus on producing optimisations for high-level constructs to free up programmers to be more productive could be more worthwhile.</p>
+	</body>
+</html>
