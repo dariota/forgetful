@@ -86,9 +86,12 @@ let get_value_after (s : stmt) (vi : varinfo) : Db.Value.t option =
 class print_cfg out = object
     inherit Visitor.frama_c_inplace
 
+    val mutable locs = Hashtbl.create 10
+
     method !vglob_aux g =
         match g with
         | GFun (f,_) -> Options.feedback ~level:6 "Processing function %s" f.svar.vname;
+                        ignore (locs = Hashtbl.create 10);
                         Cil.DoChildrenPost (fun g -> g)
         | _          -> Cil.SkipChildren
 
@@ -101,21 +104,24 @@ class print_cfg out = object
                 let (target, malloc_list) = from_option malloc_details in
                 let tvalue = from_option (get_value_after s target) in
                 let tbases = Locations.Location_Bytes.get_bases tvalue in
-                (Base.SetLattice.iter (fun e -> Options.result "malloc resultant bases: %a" Base.pretty_addr e) tbases;
+                (Base.SetLattice.iter (fun e -> Options.feedback ~level:2 "malloc resultant bases: %a" Base.pretty_addr e) tbases;
                 let exp = List.nth malloc_list 0 in
                 let value = !Db.Value.access_expr (Kstmt s) exp in
                 let (b, i) = Locations.Location_Bytes.find_lonely_key value in
                 let validity = Base.validity b in
                 (if Ival.is_bottom i then
-                    Options.result "Could not determine size of malloc %a" Printer.pp_stmt s
+                    Options.feedback ~level:2 "Could not determine size of malloc %a" Printer.pp_stmt s
                 else
                     (match validity with
                     | Invalid ->
-                        if Ival.is_singleton_int i then
-                            Options.result "Found malloc of size %d in %a" (Integer.to_int (Ival.project_int i)) Printer.pp_stmt s
-                        else
-                            Options.result "Found malloc of size between %d and %d in %a" (Integer.to_int (from_option (Ival.min_int i))) (Integer.to_int (from_option (Ival.max_int i))) Printer.pp_stmt s
-                    | _ -> Options.result "Could not determine size of malloc %a" Printer.pp_stmt s)
+                        let size = if Ival.is_singleton_int i then
+                                       Integer.to_int (Ival.project_int i)
+                                   else
+                                       (Options.result "variable size range from %d to %d in %a" (Integer.to_int (from_option (Ival.min_int i))) (Integer.to_int (from_option (Ival.max_int i))) Printer.pp_stmt s;
+                                       Integer.to_int (from_option (Ival.max_int i)))
+                        in
+                        Base.SetLattice.iter (fun e -> if size <= 48 && not (Base.is_null e) then Hashtbl.add locs (Base.id e) s else ()) tbases
+                    | _ -> Options.feedback ~level:2 "Could not determine size of malloc %a" Printer.pp_stmt s)
                 ))
             else ();
             if is_some free_targets_opt then
@@ -123,7 +129,7 @@ class print_cfg out = object
                 let exp = List.nth (from_option free_targets_opt) 0 in
                 let value = !Db.Value.access_expr (Kstmt s) exp in
                 let bases = Locations.Location_Bytes.get_bases value in
-                Base.SetLattice.iter (fun e -> Options.result "freeing base: %a" Base.pretty_addr e) bases)
+                Base.SetLattice.iter (fun e -> Options.result "freeing base: %a" Base.pretty_addr e; if (not (Base.is_null e)) && Hashtbl.mem locs (Base.id e) then Options.result "previous base is from stmt: %a" Printer.pp_stmt (Hashtbl.find locs (Base.id e))) bases)
             else
                 ();
             Cil.DoChildren
