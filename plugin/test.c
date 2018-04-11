@@ -14,6 +14,7 @@ int main(int argc, char* argv) {
 	int *blah2 = malloc(sizeof(int) * sizeDef);
 	int *blah4 = malloc(sizeof(int) + &sizeDef);
 	int **blah3 = malloc(sizeof(int*) * 10 + sizeof(malloc(1)));
+	int *varSize = malloc(sizeof(int) * (rand() % 12 + 1));
 	malloc(0);
 	if (!blah || !blah2 || !blah3)
 		return 1;
@@ -42,7 +43,7 @@ int main(int argc, char* argv) {
 
 	malloc(sizeof(int));
 	printf("%p\n", malloc(sizeof(int))+1);
-	free(copy), free(blah2), free(malloc(sizeof(int)));
+	free(copy), free(blah2), free(malloc(sizeof(int))), free(varSize);
 
 	int arg = f(malloc(sizeof(int)));
 	if (!arg) return 1;
