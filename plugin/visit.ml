@@ -81,13 +81,16 @@ let get_value_after (s : stmt) (vi : varinfo) : Db.Value.t option =
           Some (Db.Value.find state loc)
       ) None ~after:true kinstr
 
-let check_base_candidacy locs stmt loc base =
+let add_candidate_base locs stmt loc size base =
     let id = Base.id base in
-    if (not (Base.is_null base)) && Hashtbl.mem locs id then
+    if not (Base.is_null base) && size <= (Options.AllocSize.get ()) then
+        Hashtbl.add locs id (loc, s)
+
+let print_candidate_base locs stmt loc base =
+    let id = Base.id base in
+    if not (Base.is_null base) && Hashtbl.mem locs id then
         let (m_loc, m_stmt) = Hashtbl.find locs id in
         Options.result "Candidate for replacement: `%a` (%a) frees base allocated at `%a` (%a)" Printer.pp_stmt stmt Printer.pp_location loc Printer.pp_stmt m_stmt Printer.pp_location m_loc
-    else
-        ()
 
 class print_cfg out = object
     inherit Visitor.frama_c_inplace
@@ -103,16 +106,15 @@ class print_cfg out = object
 
     method! vstmt_aux s =
         Options.feedback ~level:5 "Processing statement %a" Printer.pp_stmt s;
-        let free_targets_opt = is_free s in
+        let free_details = is_free s in
         let malloc_details = is_malloc s
         in
             if is_some malloc_details then
                 let (loc, target, malloc_list) = from_option malloc_details in
                 let tvalue = from_option (get_value_after s target) in
                 let tbases = Locations.Location_Bytes.get_bases tvalue in
-                (Base.SetLattice.iter (fun e -> Options.feedback ~level:2 "malloc resultant bases: %a" Base.pretty_addr e) tbases;
-                let exp = List.nth malloc_list 0 in
-                let value = !Db.Value.access_expr (Kstmt s) exp in
+                let size_exp = List.nth malloc_list 0 in
+                let value = !Db.Value.access_expr (Kstmt s) size_exp in
                 let (b, i) = Locations.Location_Bytes.find_lonely_key value in
                 let validity = Base.validity b in
                 (if Ival.is_bottom i then
@@ -123,20 +125,19 @@ class print_cfg out = object
                         let size = if Ival.is_singleton_int i then
                                        Integer.to_int (Ival.project_int i)
                                    else
-                                       (Options.feedback ~level:2 "variable size range from %d to %d in %a" (Integer.to_int (from_option (Ival.min_int i))) (Integer.to_int (from_option (Ival.max_int i))) Printer.pp_stmt s;
-                                       Integer.to_int (from_option (Ival.max_int i)))
+                                       Integer.to_int (from_option (Ival.max_int i))
                         in
-                        Base.SetLattice.iter (fun e -> if size <= (Options.AllocSize.get ()) && not (Base.is_null e) then Hashtbl.add locs (Base.id e) (loc, s) else ()) tbases
+                        Base.SetLattice.iter (add_candidate_base locs s loc size) tbases
                     | _ -> Options.feedback ~level:2 "Could not determine size of malloc %a" Printer.pp_stmt s)
-                ))
+                )
             else ();
-            if is_some free_targets_opt then
+            if is_some free_details then
                 (Options.feedback ~level:2 "Found free in statement %a" Printer.pp_stmt s;
-                let (loc, free_list) = from_option free_targets_opt in
+                let (loc, free_list) = from_option free_details in
                 let exp = List.nth free_list 0 in
                 let value = !Db.Value.access_expr (Kstmt s) exp in
                 let bases = Locations.Location_Bytes.get_bases value in
-                Base.SetLattice.iter (check_base_candidacy locs s loc) bases)
+                Base.SetLattice.iter (print_candidate_base locs s loc) bases)
             else
                 ();
             Cil.DoChildren
