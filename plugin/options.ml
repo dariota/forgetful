@@ -1,33 +1,25 @@
-let help_msg = "Base plugin to work off for forgetful"
+let help_msg = "Find locations with memory allocations trivial to replace with stack allocations"
 
 module Self = Plugin.Register
     (struct
-        let name = "base plugin"
-        let shortname = "base"
+        let name = "forgetful"
+        let shortname = "forgetful"
         let help = help_msg
     end)
 
-module NumberBase = Self.Int
+module AllocSize = Self.Int
     (struct
-        let option_name = "-base-arithmetic"
-        let default = 9
-        let arg_name = "base"
-        let help = "Sets the base for numeric calculations"
+        let option_name = "-forgetful-max-alloc-size"
+        let default = 64
+        let arg_name = "max size"
+        let help = "Determines the maximum size (in bytes) to report replaceable allocations for"
     end)
-let () = NumberBase.set_range ~min:2 ~max:10
-
-module Greet = Self.String
-    (struct
-        let option_name = "-base-greet"
-        let default = "It's happening!!!"
-        let arg_name = "greeting"
-        let help = "The message to output at startup"
-    end)
+let () = AllocSize.set_range ~min:0 ~max:2147483647
 
 module Enable = Self.False
     (struct
-        let option_name = "-base"
-        let help = "When on (off by default), outputs some stupid things in the console"
+        let option_name = "-forgetful"
+        let help = "When on (off by default), reports replaceable allocations of size equal to or less than max size"
     end)
 
 let feedback = Self.feedback
