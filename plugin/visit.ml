@@ -25,12 +25,12 @@ let rec get_free_target (es : exp list) : lval =
 let varinfo_matches (v : varinfo) (s : string) : bool =
     v.vorig_name = s
 
-let is_free (s : stmt) : exp list option = match s.skind with
+let is_free (s : stmt) : (location * exp list) option = match s.skind with
     | Instr i -> (match i with
-        | Call (_,e,es,_) -> (match e.enode with
+        | Call (_,e,es,loc) -> (match e.enode with
             | Lval (h,_) -> (match h with
                 | Var v -> if varinfo_matches v "free" then
-                               Some es
+                               Some (loc, es)
                            else
                                None
                 | _ -> None)
@@ -47,24 +47,24 @@ let extract_varinfo_lval (v : lval option) : varinfo option =
     else
         None
 
-let is_malloc (s : stmt) : (varinfo * exp list) option = match s.skind with
+let is_malloc (s : stmt) : (location * varinfo * exp list) option = match s.skind with
     | Instr i -> (match i with
-        | Call (vl,e,es,_) -> (match e.enode with
+        | Call (vl,e,es,loc) -> (match e.enode with
             | Lval (h,_) -> (match h with
                 | Var v -> let target = extract_varinfo_lval vl in
                            if varinfo_matches v "malloc" then
                                if is_some target then
-                                   Some (from_option target, es)
+                                   Some (loc, from_option target, es)
                                else
                                    (Options.feedback ~level:3 "Could not determine target in %a" Printer.pp_stmt s; None)
                            else
                                None
                 | _ -> None)
             | _ -> None)
-        | Local_init (vl,l,_) -> (match l with
+        | Local_init (vl,l,loc) -> (match l with
             | ConsInit (v,es,_) ->
                 if varinfo_matches v "malloc" then
-                    Some (vl, es)
+                    Some (loc, vl, es)
                 else
                     None
             | _ -> None)
@@ -82,6 +82,14 @@ let get_value_after (s : stmt) (vi : varinfo) : Db.Value.t option =
       (fun state _ ->
           Some (Db.Value.find state loc)
       ) None ~after:true kinstr
+
+let check_base_candidacy locs stmt loc base =
+    let id = Base.id base in
+    if (not (Base.is_null base)) && Hashtbl.mem locs id then
+        let (m_loc, m_stmt) = Hashtbl.find locs id in
+        Options.result "Candidate for replacement: `%a` (%a) frees base allocated at `%a` (%a)" Printer.pp_stmt stmt Printer.pp_location loc Printer.pp_stmt m_stmt Printer.pp_location m_loc
+    else
+        ()
 
 class print_cfg out = object
     inherit Visitor.frama_c_inplace
@@ -101,7 +109,7 @@ class print_cfg out = object
         let malloc_details = is_malloc s
         in
             if is_some malloc_details then
-                let (target, malloc_list) = from_option malloc_details in
+                let (loc, target, malloc_list) = from_option malloc_details in
                 let tvalue = from_option (get_value_after s target) in
                 let tbases = Locations.Location_Bytes.get_bases tvalue in
                 (Base.SetLattice.iter (fun e -> Options.feedback ~level:2 "malloc resultant bases: %a" Base.pretty_addr e) tbases;
@@ -126,10 +134,11 @@ class print_cfg out = object
             else ();
             if is_some free_targets_opt then
                 (Options.feedback ~level:2 "Found free in statement %a" Printer.pp_stmt s;
-                let exp = List.nth (from_option free_targets_opt) 0 in
+                let (loc, free_list) = from_option free_targets_opt in
+                let exp = List.nth free_list 0 in
                 let value = !Db.Value.access_expr (Kstmt s) exp in
                 let bases = Locations.Location_Bytes.get_bases value in
-                Base.SetLattice.iter (fun e -> Options.result "freeing base: %a" Base.pretty_addr e; if (not (Base.is_null e)) && Hashtbl.mem locs (Base.id e) then Options.result "previous base is from stmt: %a" Printer.pp_stmt (Hashtbl.find locs (Base.id e))) bases)
+                Base.SetLattice.iter (check_base_candidacy locs s loc) bases)
             else
                 ();
             Cil.DoChildren
