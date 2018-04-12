@@ -117,10 +117,10 @@ class print_cfg out = object
                         let size = if Ival.is_singleton_int i then
                                        Integer.to_int (Ival.project_int i)
                                    else
-                                       (Options.result "variable size range from %d to %d in %a" (Integer.to_int (from_option (Ival.min_int i))) (Integer.to_int (from_option (Ival.max_int i))) Printer.pp_stmt s;
+                                       (Options.feedback ~level:2 "variable size range from %d to %d in %a" (Integer.to_int (from_option (Ival.min_int i))) (Integer.to_int (from_option (Ival.max_int i))) Printer.pp_stmt s;
                                        Integer.to_int (from_option (Ival.max_int i)))
                         in
-                        Base.SetLattice.iter (fun e -> if size <= 48 && not (Base.is_null e) then Hashtbl.add locs (Base.id e) s else ()) tbases
+                        Base.SetLattice.iter (fun e -> if size <= (Options.AllocSize.get ()) && not (Base.is_null e) then Hashtbl.add locs (Base.id e) (loc, s) else ()) tbases
                     | _ -> Options.feedback ~level:2 "Could not determine size of malloc %a" Printer.pp_stmt s)
                 ))
             else ();
