@@ -18,14 +18,14 @@ let rec get_free_target (es : exp list) : lval =
         | CastE (_,e) -> get_free_target [e]
         | _ -> raise (Options.result "failed on %a" Printer.pp_exp target; Failure "Unexpected target for free")
 
-let varinfo_matches (v : varinfo) (s : string) : bool =
+let varinfo_matches (s : string) (v : varinfo) : bool =
     v.vorig_name = s
 
 let is_free (s : stmt) : (location * exp list) option = match s.skind with
     | Instr i -> (match i with
         | Call (_,e,es,loc) -> (match e.enode with
             | Lval (h,_) -> (match h with
-                | Var v -> if varinfo_matches v "free" then
+                | Var v -> if varinfo_matches "free" v then
                                Some (loc, es)
                            else
                                None
@@ -43,12 +43,14 @@ let extract_varinfo_lval (v : lval option) : varinfo option =
     else
         None
 
-let is_malloc (s : stmt) : (location * varinfo * exp list) option = match s.skind with
+let is_malloc (s : stmt) : (location * varinfo * exp list) option =
+    let matches = varinfo_matches "malloc" in
+    match s.skind with
     | Instr i -> (match i with
         | Call (vl,e,es,loc) -> (match e.enode with
             | Lval (h,_) -> (match h with
                 | Var v -> let target = extract_varinfo_lval vl in
-                           if varinfo_matches v "malloc" then
+                           if matches v then
                                if is_some target then
                                    Some (loc, from_option target, es)
                                else
@@ -59,7 +61,7 @@ let is_malloc (s : stmt) : (location * varinfo * exp list) option = match s.skin
             | _ -> None)
         | Local_init (vl,l,loc) -> (match l with
             | ConsInit (v,es,_) ->
-                if varinfo_matches v "malloc" then
+                if matches v then
                     Some (loc, vl, es)
                 else
                     None
