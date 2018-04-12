@@ -8,10 +8,6 @@ let is_some = function
     | Some _ -> true
     | _      -> false
 
-let get_expr_lvals (es : exp list) : lval list = List.fold_left (fun a e -> match e.enode with
-    | Lval (h,o) -> (h,o) :: a
-    | _          -> a) [] es
-
 let rec get_free_target (es : exp list) : lval =
     if List.length es != 1 then
         raise (Failure "Multiple exps in free list")
