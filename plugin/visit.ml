@@ -84,23 +84,25 @@ let get_value_after (s : stmt) (vi : varinfo) : Db.Value.t option =
 let add_candidate_base locs stmt loc size base =
     let id = Base.id base in
     if not (Base.is_null base) && size <= (Options.AllocSize.get ()) then
-        Hashtbl.add locs id (loc, s)
+        Hashtbl.add locs id (loc, stmt)
 
-let print_candidate_base locs stmt loc base =
+let print_candidate_base funcName locs stmt loc base =
     let id = Base.id base in
     if not (Base.is_null base) && Hashtbl.mem locs id then
         let (m_loc, m_stmt) = Hashtbl.find locs id in
-        Options.result "Candidate for replacement: `%a` (%a) frees base allocated at `%a` (%a)" Printer.pp_stmt stmt Printer.pp_location loc Printer.pp_stmt m_stmt Printer.pp_location m_loc
+        Options.result "Candidate for replacement in %s: `%a` (%a) frees base allocated at `%a` (%a)" funcName Printer.pp_stmt stmt Printer.pp_location loc Printer.pp_stmt m_stmt Printer.pp_location m_loc
 
 class print_cfg out = object
     inherit Visitor.frama_c_inplace
 
     val mutable locs = Hashtbl.create 10
+    val mutable currFunc = ""
 
     method !vglob_aux g =
         match g with
         | GFun (f,_) -> Options.feedback ~level:6 "Processing function %s" f.svar.vname;
-                        ignore (locs = Hashtbl.create 10);
+                        ignore (locs <- Hashtbl.create 10);
+                        ignore (currFunc <- f.svar.vorig_name);
                         Cil.DoChildrenPost (fun g -> g)
         | _          -> Cil.SkipChildren
 
@@ -137,7 +139,7 @@ class print_cfg out = object
                 let exp = List.nth free_list 0 in
                 let value = !Db.Value.access_expr (Kstmt s) exp in
                 let bases = Locations.Location_Bytes.get_bases value in
-                Base.SetLattice.iter (print_candidate_base locs s loc) bases)
+                Base.SetLattice.iter (print_candidate_base currFunc locs s loc) bases)
             else
                 ();
             Cil.DoChildren
