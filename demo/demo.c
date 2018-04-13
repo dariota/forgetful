@@ -2,8 +2,8 @@
 #include <time.h>
 
 int* delegate(size_t size) {
-	// this one gets found, intended to prevent function inlining
-	int* distraction = malloc(size * 2);
+	// found by default to show different functions are found
+	int* distraction = malloc(sizeof(int));
 	free(distraction);
 
 	return malloc(size);
@@ -12,30 +12,31 @@ int* delegate(size_t size) {
 int main(void) {
 	srand(time(NULL));
 
-	// these both get found by default
+	// this one is direct and gets found
 	int* local = malloc(sizeof(int));
+	// this one's indirect, so it doesn't
 	int* delegated = delegate(sizeof(int));
 	
 	// this one gets found by setting max size to 64
 	int* capped = malloc(sizeof(int) * (rand() % 16 + 1));
 
 	// this one gets found by setting max size to 4 * 32768
-	// (RAND_MAX in frama-c + 1)
+	// (RAND_MAX in frama-c + 1), i.e. 131072
 	int* randomly = malloc(sizeof(int) * (rand() + 1));
 
-	// and this one only gets found by setting max size to the larger of the
-	// branches, i.e. 40000
 	int* fixed = NULL;
 	if (rand() % 2) {
+		// this one gets found by default
 		fixed = malloc(sizeof(int));
 	} else {
+		// this one gets found by setting max size to 4*10000 i.e. 40000
 		fixed = malloc(sizeof(int) * 10000);
 	}
 
-	// similar to the above, it gets found if set to the larger of the two
-	// options, so 68
+	// gets found by default
 	int* varied = malloc(sizeof(int));
 	if (rand() % 2) {
+		// gets found if max size set to 4 * 17 i.e. 68
 		varied = malloc(sizeof(int) * 17);
 	}
 
