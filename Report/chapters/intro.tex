@@ -5,7 +5,7 @@ Despite the often misattributed epigraph above often being used to mock past bel
 With the broad availability of large amounts of computational power, memory and storage, conservation or efficient use of the same is often overlooked in programming. This is largely perpetuated by the (often valid) view that programmer time is more valuable than the benefits that more efficient but more complex code brings.
 
 However, there remain situations where these benefits are in fact worth the effort required. One of these such cases is in code intended to be deployed in embedded or mobile devices, where resources are limited and preservation of power is essential. \\
-A blog post \cite{curlmalloc} by Daniel Stenberg, original author of the \toolname{curl} command line tool and ubiquitous URL data transfer tool, is a retrospective on an attempt to reduce unnecessary heap allocations.
+A blog post~\cite{curlmalloc} by Daniel Stenberg, original author of the \toolname{curl} command line tool and ubiquitous URL data transfer tool, is a retrospective on an attempt to reduce unnecessary heap allocations.
 
 Inspired by that post, the aim of this project is to produce a tool to identify cases where similar changes could be made in order to potentially reduce a program's energy and processing power footprint, and at the same time improve its performance.
 
