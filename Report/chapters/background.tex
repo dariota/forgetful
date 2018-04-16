@@ -2,12 +2,36 @@ This chapter will contain:
 
 \section{Background on the Patch}
 
-Background on the patch as applied by Daniel Stenberg
+\toolname{cURL}'s first dated change was introduced in April of 1998~\cite{curlrelease}, with three versions already having been released before that. When introduced, guidelines for contributors were loose and didn't particularly discourage varying programming styles or adherence to existing styles in the codebase~\cite{curlcontribute1999}. In the 20 year interim, stricter guidelines have been introduced, all changes require tests and must be sufficiently atomic and so on~\cite{curlcontribute2017}.\\
+However, over 150,000 lines of C have been added in that period of time and under potentially weaker requirements. As a result, there are plenty of places where improvements can be made.
 
-\section{Hypothesis for the Results of the Patch}
+In particular, Stenberg's post discusses two allocation related changes~\cite{curlmalloc}. The first involves rewriting some generic linked list functions in order to remove all allocation from them, while the second involves rewriting a polling function which takes a copy of its input to copy said input into a stack-allocated buffer in a common case, rather than using \malloc{} every time.
 
-Hypothesis as to why the patch caused a performance increase (why that much vs more/less)
+\subsection{Linked List Changes}
 
+The original linked list implementation incurred a \malloc{} on every insertion and a \free{} on every deletion, as the data and the linked list node were two separately allocated objects. First the data struct would be allocated and initialised, then passed to the linked list functions, which would then allocate a linked list node struct and point it at the data struct before continuing on to perform the requested operation.
 
+The change involved rewriting any data structs to also contain a linked list node struct and changing the generic linked list functions to take both a pointer to the data struct and a pointer to the linked list struct (which would just point at the struct contained in the data struct, while allowing the functions to remain generic). This has two beneficial results:
 
+\begin{itemize}
+	\item Linked list functions can't fail due to memory constraints any more, simplifying logic that uses them
+	\item Less allocations are performed, as only one allocation is performed per node rather than two
+\end{itemize}
 
+According to Stenberg in his blog post, these changes led to a modest reduction in the number of allocations in a simple benchmark (from 115 allocations to 80, or a 26\% reduction)~\cite{curlmalloc}. Stenberg notes that these changes are effectively free, and improve the code quality.
+
+\subsection{Polling Function Changes}
+
+The polling function in question is \functionname{curl\_multi\_wait}. The function takes as input a list of file descriptors\footnote{A file descriptor is part of the POSIX API, providing a uniform interface to similar but distinct interfaces such as files, hardware devices, network sockets and so on. \toolname{cURL} further abstracts the concept for added portability. The specifics are not important here.}, polls each one and returns with an error code (indicating whether the descriptors were polled successfully or if there was some issue).\\
+For the purposes of polling, \toolname{cURL}'s internal abstraction is accepted alongside regular file descriptors. In order to make their handling simpler, a block of memory is allocated with a plain \malloc{} where all file descriptors are copied to for polling.
+
+The expectation is that \functionname{curl\_multi\_wait} will be used in conjuction with other functions for bulk operations on sets of file descriptors in a polling loop. Due to internal constraints on timeouts, this means that \functionname{curl\_multi\_wait} could be called as often as 1000 times per second, each time potentially calling \malloc{}. Removing this \malloc{} should lead to a significant reduction in the number of allocations made.
+
+The change made here was simple, and the one of interest for this project. In the common case (as claimed by Stenberg without mentioning how its commonness was determined), \functionname{curl\_multi\_wait} was changed over to avoid the malloc and instead use a stack allocated block of memory when few file descriptors were passed to it.\\
+There was a very significant claimed decrease in the number of allocations as a result of this change in a simple benchmark (from 33,961 to 129, or a reduction of 99.62\%).
+
+\subsection{Results of the Changes}
+
+The version of the tool built with these changes was then compared in a fully local benchmark (to avoid any impact of network connectivity or other external factors) to the previous release. Stenberg reports it performed 30\% faster, transferring 2900~MB/sec vs the previous version's 2200~MB/sec.
+
+However, this comparison attributes all performance and allocation differences to these two commits, despite there having been 231 commits in total between the two versions. Stenberg highlights this, but adds a caveat that none of them spring to mind as having an impact on the number of allocations or significant performance changes.
