@@ -1,17 +1,78 @@
-This chapter will contain descriptions of:
+Two initial approaches to create the tool were considered: hooking directly into the compiler to detect the pattern and automatically patch it (when enabled, and when the pattern is detected with sufficiently high confidence); or creating a plugin for an existing static analysis platform which could be manually run on existing codebases to detect the pattern. A decision was made, largely for reasons of pragmatism and convenience, to follow the second approach.
+
+\todo{add discussion of pros and cons of both sides}
 
 \section{Goals of the Plugin}
 
-What are the initial goals of the plugin, including those that weren't achieved? How do these goals directly relate to the patch?
+\todo{What are the initial goals of the plugin, including those that weren't achieved? How do these goals directly relate to the patch?}
 
-\section{The Frama-C Platform}
+There were a small set of goals for the plugin to achieve, both functional and non-functional.
 
-What is Frama-C? Why choose Frama-C (over bespoke solutions or other platforms)? Background on Frama-C, its goals.
+\subsection{Non-Functional Goals}
 
-\section{Difficulties Encountered}
+The non-functional goals are as follows:
+
+\begin{itemize}
+	\item There should be little to no modification of any existing code required to use the plugin to a satisfactory degree
+	\item There should be a minimal amount of false positives wherein the plugin suggests a site where the patch cannot be applied
+	\item Interaction with the plugin should match the normal mode of interaction for the platform it builds on
+\end{itemize}
+
+These goals should ensure that the barrier to entry to using the plugin is as low as possible, as it can be used directly on existing code, even if the static analysis platform itself has never been used on that code. Additionally, avoiding false positives makes it more likely that action will be taken on the plugin's results by minimising the amount of data users have to trawl through~\cite{infervideo}. Lastly, ensuring all interaction with the plugin matches what's expected of its platform makes its adoption in systems already using the static analysis platform even easier.
+
+\subsection{Functional Goals}
+
+The functional goals are as follows:
+
+\begin{itemize}
+	\item When a site where the patch can be applied is found, the user should be notified
+	\item Where possible, a diff patch\footnote{A diff patch is an encoding of a set of changes that can be automatically applied with a standard tool to a file to effect a change} should be produced to apply the patch easily
+\end{itemize}
+
+Notifying the user is a fairly self-explanatory goal, as there's no point detecting an issue and not noting it. The exact form of the notification isn't important, but should provide as much information as possible without overwhelming the user, allowing them to make a reasonable decision about what action to take.
+
+The diff patch is more complicated, but would be incredibly useful. If the plugin's could guarantee that a certain site could be patched safely before producing a diff patch, it could be added into a pre-compilation step to rewrite the pattern silently. This would allow the source code that users work on to remain simple and as they wrote it while gaining any performance benefit from the patch.
+
+\section{Static Analysis Platform}
+
+There are a number of static analysis tools built for C over the years, of which a small number were chosen based on apparent activity of their development and popularity (as a proxy for likelihood to be well supported and modern). The short-list which the eventual target platform was chosen from consisted of \toolname{clang-analyzer}~\cite{clang-analyzer}, \toolname{Frama-C}~\cite{frama}, and \toolname{Infer}~\cite{fbinfer}.
+
+\toolname{clang-analyze} is written in C++, matching the \toolname{clang} codebase in originates from and resides in. \toolname{Frama-C} and \toolname{Infer} are both written in OCaml, though while \toolname{Frama-C} builds up its own AST\footnote{An Abstract Syntax Tree (AST) is a tree-based representation of a program, with each node representing a construct appearing in the source code}, \toolname{Infer} hooks into \toolname{clang-analyzer}.
+
+The tools that were not chosen are discussed in further depth in Chapter~\ref{state_of_the_art} in comparison to \toolname{Frama-C} in a retrospective manner.
+
+\section{The \toolname{Frama-C} Platform}
+
+The static analysis platform chosen was \toolname{Frama-C}. \toolname{Frama-C} has an emphasis on on correctness, providing its own language for functional specifications which can be provided alongside the code. While this is of no interest to this project thanks to the first functional goal, it assists in reducing false positives thanks to its conservative approach and care around sites of potential undefined behaviour.
+
+However, and of more interest to the project, it also has a plug-in architecture, which makes it easy to extend and build on. In particular, it enables plugins to interact, which allows new plugins to use functionality exposed by existing plugins thereby reducing the workload required within the plugin itself. This was the primary factor in the choice of \toolname{Frama-C} over the other two platforms.
+
+\subsection{Source Code Processing}
+
+\todo{talk about how Frama-C constructs the AST}
+
+\subsection{The \toolname{Evolved Value Analysis} Plugin}
+
+\todo{talk about how EVA works, its abstractions and limitations}
+
+\section{Development of the \toolname{Forgetful} Plugin}
+
+\subsection{Visitor Pattern}
+
+\todo{Describe how the visitor pattern is used}
+
+\subsection{Allocation Tracking}
+
+\todo{describe the process used to track the allocation throughout a program}
+
+\subsection{Difficulties Encountered}
 
 What difficulties were encountered (new language, installation, documentation, usefulness of results from other plugins [no location data in Base], any future issues)
 
 \section{Final State of the Plugin}
 
 What state is the plugin currently in? How well has it achieved its goals? Refer to future work section.
+
+\subsection{Identified Sites}
+
+\subsection{Limitations}
