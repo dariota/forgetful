@@ -65,9 +65,58 @@ The root of the AST is a representation of the file being processed, which conta
 
 Within a function node we're interested in its statement list, which contains statements of various kinds, such as a plain instruction with no control flow, which can include a variable declaration and assignment, or a reassignment of an existing variable. These are the exact subsets of statements in which a \malloc{} can occur after normalisation of the AST, including the unusual case of a \malloc{} that's not assigned to anything.
 
+\toolname{Frama-C} alone doesn't provide any sort of value or escape analysis, instead leaving this to be provided by plugins. The primary plugin providing these features is called \toolname{Evolved Value Analysis} (\toolname{EVA}).
+
 \subsection{The \toolname{Evolved Value Analysis} Plugin}
 
-\todo{talk about how EVA works, its abstractions and limitations}
+\toolname{EVA} provides, at any given point in the AST, a set or interval describing values possible at a given point. Values can be requested for expressions or variables with respect to a given statement, and they can be evaluated either before or after execution of that statement. \toolname{EVA} also performs semantic constant folding, allowing it to be used even on code including loops.
+
+Values can be described as a discrete set of values, as an interval, or as an interval skipping regular values. When \toolname{EVA} determines that one of the representations is becoming too large, it can degenerate the value to a broader description that contains all of the original values. As an example, take the following:
+
+\lstinputlisting[style=CStyle,firstline=21,lastline=38]{samples/eva.c}
+
+Assuming that the level of semantic constant folding \toolname{Frama-C} is permitted to do is high enough to fully evaluate the loop and that \texttt{NUM\_PRIMES} is set to 8, \toolname{EVA} produces the following values at the end of the loop
+
+\begin{table}
+	\centering
+	\begin{tabular}{lc|lc}
+		\toprule
+		\textbf{Variable} & \textbf{Values} & \textbf{Variable} & \textbf{Values} \\
+		\midrule
+		\texttt{morePrimes[0]} & \{2\} & \texttt{morePrimes[4]} & \{11\} \\
+		\texttt{morePrimes[1]} & \{3\} & \texttt{morePrimes[5]} & \{13\} \\
+		\texttt{morePrimes[2]} & \{5\} & \texttt{morePrimes[6]} & \{17\} \\
+		\texttt{morePrimes[3]} & \{7\} & \texttt{morePrimes[7]} & \{19\} \\
+		\texttt{randVal} & [0..32767] & \texttt{index} & \{8\} \\
+		\texttt{randPrime} & \{2; 3; 5; 7; 11; 13; 17; 19\} & & \\
+		\bottomrule
+	\end{tabular}
+\end{table}
+
+In particular, note that each item in the array \texttt{morePrimes} is tracked separately by \toolname{EVA}, that \texttt{randPrime} can take on any of the prime values, that \texttt{randVal} can take on any values between 0 and \toolname{Frama-C}'s \texttt{RAND\_MAX}, and that variables that can only take on a single value are considered to have a value which is a singleton set.
+
+Next, we consider the values reported if the semantic constant folding allowed is set too low to evaluate anything past the first prime. The values reported are now
+
+\begin{table}[h]
+	\centering
+	\begin{tabularx}{\linewidth}{>{\hsize=1.1\hsize}X >{\hsize=1.3\hsize}X | >{\hsize=0.6\hsize}X >{\hsize=1\hsize}X}
+		\toprule
+		\textbf{Variable} & \textbf{Values} & \textbf{Variable} & \textbf{Values} \\
+		\midrule
+		\texttt{morePrimes[0]} & \{2\} & \texttt{index} & \{8\} \\
+		\texttt{morePrimes[1..7]} & [3..2147483647] or UNINITIALIZED & \texttt{randVal} & [0..32767] \\
+		\texttt{randPrime} & [2..2147483647] & & \\
+		\bottomrule
+	\end{tabularx}
+\end{table}
+
+This time we note that EVA can no longer determine whether the loop ever terminates and cannot determine the values for all indices of the \texttt{morePrimes} array, nor if they're ever initialised (due to the possibility of overflow in \texttt{current} without index being incremented sufficient times to exit the loop). As expected, \texttt{randPrime}'s possible values also cannot be determined, as it depends on full evaluation of all values in \texttt{morePrimes}. However, the other variables do not depend on the loop, so they can be correctly evaluated regardless.
+
+Next, increasing \texttt{NUM\_PRIMES} to 9 causes \toolname{EVA} to decide \texttt{randPrime} has too many values, so it reduces its precision to [2..23] which still contains all the correct values with as much precision as possible without storing the individual values.
+
+Additionally, changing line 12 so that \texttt{randPrime} is assigned \texttt{current * 4} causes \toolname{EVA} to again degenerate its set of values into [2..76]0\%2, which is the most complicated value type \toolname{EVA} can produce, and indicates that values start at 2 with an offset of 0 and every second value is potentially valid. This includes all the valid values (\{8; 12; 20; 28; 44; 52; 68; 76\}), but is less precise than an alternative interval of [8..76]0\%4. It's not clear why \toolname{EVA} choose one instead of the other.
+
+While this covers all simple values such as integers, floats, and even structs (which function similar to an array, where each member is separately displayed), it doesn't cover pointers. There are two kinds of pointer which are represented identically. The first is a pointer to an existing variable such as \texttt{\&randPrime}, while the second is a pointer created by a call to a function like \malloc{}. Both types are represented as \texttt{\{\{ \&varname \}\}}, where \texttt{varname} is either the name of the variable pointed to, or something of the form \texttt{\{\{\&\_\_malloc\_main\_l33 \}\}} in the case of \malloc{}, where a unique variable name is generated, representing a point in heap memory which \toolname{EVA} calls a Base.
 
 \section{Development of the \toolname{Forgetful} Plugin}
 
