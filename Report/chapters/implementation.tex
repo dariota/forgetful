@@ -49,7 +49,21 @@ However, and of more interest to the project, it also has a plug-in architecture
 
 \subsection{Source Code Processing}
 
-\todo{talk about how Frama-C constructs the AST}
+\toolname{Frama-C} produces an AST which plugins can then operate on. The version of the code exposed to plugins is normalised by Frama-C, which prevents duplication of efforts in handling unusual edge cases enabled by C's permissive design. As an example, consider the following C functions (which are intentionally contrived)
+
+\lstinputlisting[style=CStyle]{samples/contrived.c}
+
+This is normalised into something like the following by \toolname{Frama-C}
+
+\lstinputlisting[style=CStyle]{samples/normalised.c}
+
+We note in particular that rewrites are performed in order to avoid multiple operations occurring on a single line, such as splitting out the evaluation of return values and their actual return, or the evaluation of expressions involving function calls and the actual function call. This prevents an arbitrarily complex AST from being constructed.
+
+The AST itself as provided to plugins to traverse is also annotated. It can be annotated in the source code itself, using \toolname{Frama-C}'s ACSL to add specifications, or annotations can be added by other plugins as they discover properties of the code.
+
+The root of the AST is a representation of the file being processed, which contains a collection of globals, of which we're only interested in functions. Other globals include declarations of variables, types, structs, unions, enums, and some other miscellaneous things.
+
+Within a function node we're interested in its statement list, which contains statements of various kinds, such as a plain instruction with no control flow, which can include a variable declaration and assignment, or a reassignment of an existing variable. These are the exact subsets of statements in which a \malloc{} can occur after normalisation of the AST, including the unusual case of a \malloc{} that's not assigned to anything.
 
 \subsection{The \toolname{Evolved Value Analysis} Plugin}
 
