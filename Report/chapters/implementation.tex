@@ -43,7 +43,7 @@ The tools that were not chosen are discussed in further depth in Chapter~\ref{st
 
 \section{The \toolname{Frama-C} Platform}
 
-The static analysis platform chosen was \toolname{Frama-C}. \toolname{Frama-C} has an emphasis on on correctness, providing its own language for functional specifications which can be provided alongside the code. While this is of no interest to this project thanks to the first functional goal, it assists in reducing false positives thanks to its conservative approach and care around sites of potential undefined behaviour.
+The static analysis platform chosen was \toolname{Frama-C}. \toolname{Frama-C} has an emphasis on on correctness, providing its own language for functional specifications which can be provided alongside the code. While this is of no particular interest to this project thanks to the first functional goal, it assists in reducing false positives thanks to its conservative approach and care around sites of potential undefined behaviour. Additionally, that specification language is used by the platform to provide properties of standard library functions such as \malloc{} and \free{}, which is essential to the project's analysis.
 
 However, and of more interest to the project, it also has a plug-in architecture, which makes it easy to extend and build on. In particular, it enables plugins to interact, which allows new plugins to use functionality exposed by existing plugins thereby reducing the workload required within the plugin itself. This was the primary factor in the choice of \toolname{Frama-C} over the other two platforms.
 
@@ -117,6 +117,8 @@ Next, increasing \texttt{NUM\_PRIMES} to 9 causes \toolname{EVA} to decide \text
 Additionally, changing line 12 so that \texttt{randPrime} is assigned \texttt{current * 4} causes \toolname{EVA} to again degenerate its set of values into [2..76]0\%2, which is the most complicated value type \toolname{EVA} can produce, and indicates that values start at 2 with an offset of 0 and every second value is potentially valid. This includes all the valid values (\{8; 12; 20; 28; 44; 52; 68; 76\}), but is less precise than an alternative interval of [8..76]0\%4. It's not clear why \toolname{EVA} choose one instead of the other.
 
 While this covers all simple values such as integers, floats, and even structs (which function similar to an array, where each member is separately displayed), it doesn't cover pointers. There are two kinds of pointer which are represented identically. The first is a pointer to an existing variable such as \texttt{\&randPrime}, while the second is a pointer created by a call to a function like \malloc{}. Both types are represented as \texttt{\{\{ \&varname \}\}}, where \texttt{varname} is either the name of the variable pointed to, or something of the form \texttt{\{\{\&\_\_malloc\_main\_l33 \}\}} in the case of \malloc{}, where a unique variable name is generated, representing a point in heap memory which \toolname{EVA} calls a Base.
+
+Bases can be collected in sets, same as regular values, but cannot form an interval. There is also a special pointer, \texttt{NULL}, representing exactly that and marked as a potential return value by \toolname{Frama-C}'s internal version of \malloc{}, although that can be disabled by one of \toolname{EVA}'s options. Clearly, bases are of particular interest for the project.
 
 \section{Development of the \toolname{Forgetful} Plugin}
 
