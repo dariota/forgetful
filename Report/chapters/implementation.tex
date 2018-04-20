@@ -1,24 +1,24 @@
-Two initial approaches to create the tool were considered: hooking directly into the compiler to detect the pattern and automatically patch it (when enabled, and when the pattern is detected with sufficiently high confidence); or creating a plugin for an existing static analysis platform which could be manually run on existing codebases to detect the pattern. A decision was made, largely for reasons of pragmatism and convenience, to follow the second approach.
+Two initial approaches to create the tool were considered: hooking directly into the compiler to detect the pattern and automatically patch it (when enabled, and when the pattern is detected with sufficiently high confidence); or creating a plug-in for an existing static analysis platform which could be manually run on existing codebases to detect the pattern. A decision was made, largely for reasons of pragmatism and convenience, to follow the second approach.
 
 \todo{add discussion of pros and cons of both sides}
 
-\section{Goals of the Plugin}
+\section{Goals of the Plug-in}
 
-\todo{What are the initial goals of the plugin, including those that weren't achieved? How do these goals directly relate to the patch?}
+\todo{What are the initial goals of the plug-in, including those that weren't achieved? How do these goals directly relate to the patch?}
 
-There were a small set of goals for the plugin to achieve, both functional and non-functional.
+There were a small set of goals for the plug-in to achieve, both functional and non-functional.
 
 \subsection{Non-Functional Goals}
 
 The non-functional goals are as follows:
 
 \begin{itemize}
-	\item There should be little to no modification of any existing code required to use the plugin to a satisfactory degree
-	\item There should be a minimal amount of false positives wherein the plugin suggests a site where the patch cannot be applied
-	\item Interaction with the plugin should match the normal mode of interaction for the platform it builds on
+	\item There should be little to no modification of any existing code required to use the plug-in to a satisfactory degree
+	\item There should be a minimal amount of false positives wherein the plug-in suggests a site where the patch cannot be applied
+	\item Interaction with the plug-in should match the normal mode of interaction for the platform it builds on
 \end{itemize}
 
-These goals should ensure that the barrier to entry to using the plugin is as low as possible, as it can be used directly on existing code, even if the static analysis platform itself has never been used on that code. Additionally, avoiding false positives makes it more likely that action will be taken on the plugin's results by minimising the amount of data users have to trawl through~\cite{infervideo}. Lastly, ensuring all interaction with the plugin matches what's expected of its platform makes its adoption in systems already using the static analysis platform even easier.
+These goals should ensure that the barrier to entry to using the plug-in is as low as possible, as it can be used directly on existing code, even if the static analysis platform itself has never been used on that code. Additionally, avoiding false positives makes it more likely that action will be taken on the plug-in's results by minimising the amount of data users have to trawl through~\cite{infervideo}. Lastly, ensuring all interaction with the plug-in matches what's expected of its platform makes its adoption in systems already using the static analysis platform even easier.
 
 \subsection{Functional Goals}
 
@@ -31,7 +31,7 @@ The functional goals are as follows:
 
 Notifying the user is a fairly self-explanatory goal, as there's no point detecting an issue and not noting it. The exact form of the notification isn't important, but should provide as much information as possible without overwhelming the user, allowing them to make a reasonable decision about what action to take.
 
-The diff patch is more complicated, but would be incredibly useful. If the plugin's could guarantee that a certain site could be patched safely before producing a diff patch, it could be added into a pre-compilation step to rewrite the pattern silently. This would allow the source code that users work on to remain simple and as they wrote it while gaining any performance benefit from the patch.
+The diff patch is more complicated, but would be incredibly useful. If the plug-in's could guarantee that a certain site could be patched safely before producing a diff patch, it could be added into a pre-compilation step to rewrite the pattern silently. This would allow the source code that users work on to remain simple and as they wrote it while gaining any performance benefit from the patch.
 
 \section{Static Analysis Platform}
 
@@ -45,11 +45,11 @@ The tools that were not chosen are discussed in further depth in Chapter~\ref{st
 
 The static analysis platform chosen was \toolname{Frama-C}. \toolname{Frama-C} has an emphasis on on correctness, providing its own language for functional specifications which can be provided alongside the code. While this is of no particular interest to this project thanks to the first functional goal, it assists in reducing false positives thanks to its conservative approach and care around sites of potential undefined behaviour. Additionally, that specification language is used by the platform to provide properties of standard library functions such as \malloc{} and \free{}, which is essential to the project's analysis.
 
-However, and of more interest to the project, it also has a plug-in architecture, which makes it easy to extend and build on. In particular, it enables plugins to interact, which allows new plugins to use functionality exposed by existing plugins thereby reducing the workload required within the plugin itself. This was the primary factor in the choice of \toolname{Frama-C} over the other two platforms.
+However, and of more interest to the project, it also has a plug-in architecture, which makes it easy to extend and build on. In particular, it enables plug-ins to interact, which allows new plug-ins to use functionality exposed by existing plug-ins thereby reducing the workload required within the plug-in itself. This was the primary factor in the choice of \toolname{Frama-C} over the other two platforms.
 
 \subsection{Source Code Processing}
 
-\toolname{Frama-C} produces an AST which plugins can then operate on. The version of the code exposed to plugins is normalised by Frama-C, which prevents duplication of efforts in handling unusual edge cases enabled by C's permissive design. As an example, consider the following C functions (which are intentionally contrived)
+\toolname{Frama-C} produces an AST which plug-ins can then operate on. The version of the code exposed to plug-ins is normalised by Frama-C, which prevents duplication of efforts in handling unusual edge cases enabled by C's permissive design. As an example, consider the following C functions (which are intentionally contrived)
 
 \lstinputlisting[style=CStyle]{samples/contrived.c}
 
@@ -59,15 +59,15 @@ This is normalised into something like the following by \toolname{Frama-C}
 
 We note in particular that rewrites are performed in order to avoid multiple operations occurring on a single line, such as splitting out the evaluation of return values and their actual return, or the evaluation of expressions involving function calls and the actual function call. This prevents an arbitrarily complex AST from being constructed.
 
-The AST itself as provided to plugins to traverse is also annotated. It can be annotated in the source code itself, using \toolname{Frama-C}'s ACSL to add specifications, or annotations can be added by other plugins as they discover properties of the code.
+The AST itself as provided to plug-ins to traverse is also annotated. It can be annotated in the source code itself, using \toolname{Frama-C}'s ACSL to add specifications, or annotations can be added by other plug-ins as they discover properties of the code.
 
 The root of the AST is a representation of the file being processed, which contains a collection of globals, of which we're only interested in functions. Other globals include declarations of variables, types, structs, unions, enums, and some other miscellaneous things.
 
 Within a function node we're interested in its statement list, which contains statements of various kinds, such as a plain instruction with no control flow, which can include a variable declaration and assignment, or a reassignment of an existing variable. These are the exact subsets of statements in which a \malloc{} can occur after normalisation of the AST, including the unusual case of a \malloc{} that's not assigned to anything.
 
-\toolname{Frama-C} alone doesn't provide any sort of value or escape analysis, instead leaving this to be provided by plugins. The primary plugin providing these features is called \toolname{Evolved Value Analysis} (\toolname{EVA}).
+\toolname{Frama-C} alone doesn't provide any sort of value or escape analysis, instead leaving this to be provided by plug-ins. The primary plug-in providing these features is called \toolname{Evolved Value Analysis} (\toolname{EVA}).
 
-\subsection{The \toolname{Evolved Value Analysis} Plugin}
+\subsection{The \toolname{Evolved Value Analysis} Plug-in}
 
 \toolname{EVA} provides, at any given point in the AST, a set or interval describing values possible at a given point. Values can be requested for expressions or variables with respect to a given statement, and they can be evaluated either before or after execution of that statement. \toolname{EVA} also performs semantic constant folding, allowing it to be used even on code including loops.
 
@@ -120,7 +120,7 @@ While this covers all simple values such as integers, floats, and even structs (
 
 Bases can be collected in sets, same as regular values, but cannot form an interval. There is also a special pointer, \texttt{NULL}, representing exactly that and marked as a potential return value by \toolname{Frama-C}'s internal version of \malloc{}, although that can be disabled by one of \toolname{EVA}'s options. Clearly, bases are of particular interest for the project.
 
-\section{Development of the \toolname{Forgetful} Plugin}
+\section{Development of the \toolname{Forgetful} Plug-in}
 
 \subsection{Visitor Pattern}
 
@@ -132,11 +132,11 @@ Bases can be collected in sets, same as regular values, but cannot form an inter
 
 \subsection{Difficulties Encountered}
 
-What difficulties were encountered (new language, installation, documentation, usefulness of results from other plugins [no location data in Base], any future issues)
+What difficulties were encountered (new language, installation, documentation, usefulness of results from other plug-ins [no location data in Base], any future issues)
 
-\section{Final State of the Plugin}
+\section{Final State of the Plug-in}
 
-What state is the plugin currently in? How well has it achieved its goals? Refer to future work section.
+What state is the plug-in currently in? How well has it achieved its goals? Refer to future work section.
 
 \subsection{Identified Sites}
 
