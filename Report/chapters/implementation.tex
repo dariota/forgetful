@@ -43,9 +43,9 @@ The tools that were not chosen are discussed in further depth in Chapter~\ref{st
 
 \section{The \toolname{Frama-C} Platform}
 
-The static analysis platform chosen was \toolname{Frama-C}. \toolname{Frama-C} has an emphasis on on correctness, providing its own language for functional specifications which can be provided alongside the code. While this is of no particular interest to this project thanks to the first functional goal, it assists in reducing false positives thanks to its conservative approach and care around sites of potential undefined behaviour. Additionally, that specification language is used by the platform to provide properties of standard library functions such as \malloc{} and \free{}, which is essential to the project's analysis.
+The static analysis platform chosen was \toolname{Frama-C}. \toolname{Frama-C} has an emphasis on on correctness, providing its own language for functional specifications which can be provided alongside the code. While this is of no particular interest to this project thanks to the first functional goal, it assists in reducing false positives thanks to its conservative approach and care around sites of potential undefined behaviour~\cite{framauser}. Additionally, that specification language is used by the platform to provide properties of standard library functions such as \malloc{} and \free{}, which is essential to the project's analysis.
 
-However, and of more interest to the project, it also has a plug-in architecture, which makes it easy to extend and build on. In particular, it enables plug-ins to interact, which allows new plug-ins to use functionality exposed by existing plug-ins thereby reducing the workload required within the plug-in itself. This was the primary factor in the choice of \toolname{Frama-C} over the other two platforms.
+However, and of more interest to the project, it also has a plug-in architecture, which makes it easy to extend and build on. In particular, it enables plug-ins to interact, which allows new plug-ins to use functionality exposed by existing plug-ins thereby reducing the workload required within the plug-in itself. This was the primary factor in the choice of \toolname{Frama-C} over the other two platforms~\cite{framaarch}.
 
 \subsection{Source Code Processing}
 
@@ -59,17 +59,17 @@ This is normalised into something like the following by \toolname{Frama-C}
 
 We note in particular that rewrites are performed in order to avoid multiple operations occurring on a single line, such as splitting out the evaluation of return values and their actual return, or the evaluation of expressions involving function calls and the actual function call. This prevents an arbitrarily complex AST from being constructed.
 
-The AST itself as provided to plug-ins to traverse is also annotated. It can be annotated in the source code itself, using \toolname{Frama-C}'s ACSL to add specifications, or annotations can be added by other plug-ins as they discover properties of the code.
+The AST itself as provided to plug-ins to traverse is also annotated. It can be annotated in the source code itself, using \toolname{Frama-C}'s ACSL to add specifications, or annotations can be added by other plug-ins as they discover properties of the code~\cite{framaplug}.
 
 The root of the AST is a representation of the file being processed, which contains a collection of globals, of which we're only interested in functions. Other globals include declarations of variables, types, structs, unions, enums, and some other miscellaneous things.
 
 Within a function node we're interested in its statement list, which contains statements of various kinds, such as a plain instruction with no control flow, which can include a variable declaration and assignment, or a reassignment of an existing variable. These are the exact subsets of statements in which a \malloc{} can occur after normalisation of the AST, including the unusual case of a \malloc{} that's not assigned to anything.
 
-\toolname{Frama-C} alone doesn't provide any sort of value or escape analysis, instead leaving this to be provided by plug-ins. The primary plug-in providing these features is called \toolname{Evolved Value Analysis} (\toolname{EVA}).
+\toolname{Frama-C} alone doesn't provide any sort of value or escape analysis, instead leaving this to be provided by plug-ins. The primary plug-in providing these features is called \toolname{Evolved Value Analysis} (\toolname{EVA}). Note that this distinction is largely symbolic, as \toolname{EVA} is statically connected to the \toolname{Frama-C} kernel, unlike regular plug-ins.
 
 \subsection{The \toolname{Evolved Value Analysis} Plug-in}
 
-\toolname{EVA} provides, at any given point in the AST, a set or interval describing values possible at a given point. Values can be requested for expressions or variables with respect to a given statement, and they can be evaluated either before or after execution of that statement. \toolname{EVA} also performs semantic constant folding, allowing it to be used even on code including loops.
+\toolname{EVA} provides, at any given point in the AST, a set or interval describing values possible at a given point. Values can be requested for expressions or variables with respect to a given statement, and they can be evaluated either before or after execution of that statement. \toolname{EVA} also performs semantic constant folding, allowing it to be used even on code including loops~\cite{framaeva}.
 
 Values can be described as a discrete set of values, as an interval, or as an interval skipping regular values. When \toolname{EVA} determines that one of the representations is becoming too large, it can degenerate the value to a broader description that contains all of the original values. As an example, take the following:
 
@@ -118,7 +118,7 @@ Additionally, changing line 12 so that \texttt{randPrime} is assigned \texttt{cu
 
 While this covers all simple values such as integers, floats, and even structs (which function similar to an array, where each member is separately displayed), it doesn't cover pointers. There are two kinds of pointer which are represented identically. The first is a pointer to an existing variable such as \texttt{\&randPrime}, while the second is a pointer created by a call to a function like \malloc{}. Both types are represented as \texttt{\{\{ \&varname \}\}}, where \texttt{varname} is either the name of the variable pointed to, or something of the form \texttt{\{\{\&\_\_malloc\_main\_l33 \}\}} in the case of \malloc{}, where a unique variable name is generated, representing a point in heap memory which \toolname{EVA} calls a Base.
 
-Bases can be collected in sets, same as regular values, but cannot form an interval. There is also a special pointer, \texttt{NULL}, representing exactly that and marked as a potential return value by \toolname{Frama-C}'s internal version of \malloc{}, although that can be disabled by one of \toolname{EVA}'s options. Clearly, bases are of particular interest for the project.
+Bases can be collected in sets, same as regular values, but cannot form an interval. There is also a special pointer, \texttt{NULL}, representing exactly that and marked as a potential return value by \toolname{Frama-C}'s internal version of \malloc{}, although that can be disabled by one of \toolname{EVA}'s options~\cite{framamalloc}. Clearly, bases are of particular interest for the project.
 
 \section{Development of the \toolname{Forgetful} Plug-in}
 
