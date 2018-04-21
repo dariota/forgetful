@@ -122,9 +122,22 @@ Bases can be collected in sets, same as regular values, but cannot form an inter
 
 \section{Development of the \toolname{Forgetful} Plug-in}
 
+A plug-in development guide is provided to aid new developers in the \toolname{Frama-C} environment to create their own plug-ins~\cite{framaplug}. The guide outlines some common use-cases, providing some code samples and best practices. Parts of these are used together to create the \toolname{Forgetful} plug-in.
+
 \subsection{Visitor Pattern}
 
-\todo{Describe how the visitor pattern is used}
+For any plug-in that doesn't require direct access to the AST for any particular reason, the development guide recommends usage of one of the provided visitor classes built-in to \toolname{Frama-C}.
+
+The visitor classes are classes implementing the visitor design pattern, intended for usage by developers who can extend and override only the specific methods they're interested in. The design pattern itself is described as
+
+\begin{quote}
+	Represent an operation to be performed on the elements of an object structure. Visitor lets you define a new operation without changing the classes of the elements on which it operates.~\cite{gof}
+\end{quote}
+
+The benefit of this pattern is that it allows the easy addition of new operations on the AST, with the downside being that it's difficult to add new types of node to the AST, but given the nature of the AST new types of nodes are rare anyway.
+
+Concretely, for the development of the plug-in, this means that it can simply extend the in-place visitor (since the plug-in will not modify the AST itself, otherwise it would have to use the copy visitor to avoid corrupting information already attached to the AST~\cite{framaplug}) and override the functions for visiting individual statements and for visiting the function declaration node. \\
+This will allow the plug-in to track which function it's currently in for scoping purposes, and to inspect the contents of statements in order to determine if they contain a \malloc{} or \free{}.
 
 \subsection{Allocation Tracking}
 
