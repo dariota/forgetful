@@ -113,25 +113,28 @@ class print_cfg out = object
         in
             if is_some malloc_details then
                 let (loc, target, malloc_list) = from_option malloc_details in
-                let tvalue = from_option (get_value_after s target) in
-                let tbases = Locations.Location_Bytes.get_bases tvalue in
-                let size_exp = List.nth malloc_list 0 in
-                let value = !Db.Value.access_expr (Kstmt s) size_exp in
-                let (b, i) = Locations.Location_Bytes.find_lonely_key value in
-                let validity = Base.validity b in
-                (if Ival.is_bottom i then
-                    Options.feedback ~level:2 "Could not determine size of malloc %a" Printer.pp_stmt s
-                else
-                    (match validity with
-                    | Invalid ->
-                        let size = if Ival.is_singleton_int i then
-                                       Integer.to_int (Ival.project_int i)
-                                   else
-                                       Integer.to_int (from_option (Ival.max_int i))
-                        in
-                        Base.SetLattice.iter (add_candidate_base locs s loc size) tbases
-                    | _ -> Options.feedback ~level:2 "Could not determine size of malloc %a" Printer.pp_stmt s)
-                )
+                let maybeVal = get_value_after s target in
+                if is_some maybeVal then
+                    let tvalue = from_option maybeVal in
+                    let tbases = Locations.Location_Bytes.get_bases tvalue in
+                    let size_exp = List.nth malloc_list 0 in
+                    let value = !Db.Value.access_expr (Kstmt s) size_exp in
+                    let (b, i) = Locations.Location_Bytes.find_lonely_key value in
+                    let validity = Base.validity b in
+                    (if Ival.is_bottom i then
+                        Options.feedback ~level:2 "Could not determine size of malloc %a" Printer.pp_stmt s
+                    else
+                        (match validity with
+                        | Invalid ->
+                            let size = if Ival.is_singleton_int i then
+                                           Integer.to_int (Ival.project_int i)
+                                       else
+                                           Integer.to_int (from_option (Ival.max_int i))
+                            in
+                            Base.SetLattice.iter (add_candidate_base locs s loc size) tbases
+                        | _ -> Options.feedback ~level:2 "Could not determine size of malloc %a" Printer.pp_stmt s)
+                    )
+                else ();
             else ();
             if is_some free_details then
                 (Options.feedback ~level:2 "Found free in statement %a" Printer.pp_stmt s;
