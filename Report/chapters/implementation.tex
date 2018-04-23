@@ -167,7 +167,15 @@ This differs from the following example, in which there is only one base which h
 
 \subsection{Difficulties Encountered}
 
-What difficulties were encountered (new language, installation, documentation, usefulness of results from other plug-ins [no location data in Base], any future issues)
+\todo{installation issue}
+
+As expected, there was a significant learning curve involved in learning both a new language, OCaml, and a new platform, \toolname{Frama-C}. Thanks to OCaml's similarity to languages such as Java and Haskell, some of this learning curve was mitigated due to familiarity with those languages. Having no prior experience developing part of or even using a static analysis tool, \toolname{Frama-C} was still difficult but manageable to broach thanks to both the user manual~\cite{framauser} and the plug-in development guide~\cite{framaplug}.
+
+Despite \toolname{Frama-C}'s lengthy guides for both users and plug-in developers, its documentation suffers from a lack of structure and detail. The plug-in development guide walks the developer through the development of a basic hello world style plug-in, building up to the currently recommended plug-in architecture. Once the basic structure is attained, the guide branches into a handful of sample plug-ins, jumping between \toolname{Frama-C}'s capabilities in a somewhat incoherent manner. By this point enough information has been provided to start on development however, so the API documentation provided separately is generally sufficient.
+
+\todo{EVA documentation issues}
+
+\todo{Base documentation issues (no location data)}
 
 \section{Final State of the Plug-in}
 
