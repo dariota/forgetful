@@ -152,16 +152,16 @@ Only allocations of a configurable maximum size or less are added to the hashtab
 
 On a \free{}, \toolname{EVA} is used to determine what bases it could be freeing, and from there its ID is used to determine if the base identifies a small allocation and where it was allocated using the aforementioned hashtable.
 
-Of course, not all allocations have a size that can be statically determined, with many instead having an interval as described in Section~\ref{EVA}. In order to simplify application of the patch in cases where the allocation size is an interval, these are only reported if the maximum value of the interval is less than or equal to the configured maximum size to report. However, this means that the plugin cannot detect the case described by Stenberg in \toolname{cURL}~\cite{curlmalloc}, as the allocation was not always below the size chosen for stack allocation.\\
+Of course, not all allocations have a size that can be statically determined, with many instead having an interval as described in Section~\ref{EVA}. In order to simplify application of the patch in cases where the allocation size is an interval, these are only reported if the maximum value of the interval is less than or equal to the configured maximum size to report. However, this means that the plug-in cannot detect the case described by Stenberg in \toolname{cURL}~\cite{curlmalloc}, as the allocation was not always below the size chosen for stack allocation.\\
 Different behaviour for intervals could be added, to allow for cases where stack allocation or heap allocation are decided between at run-time.
 
-It's also worth noting that bases are independent of the variable names they're allocated to. Take the following section, where \texttt{TOO\_LARGE} and \texttt{SMALL\_ENOUGH} are appropriately defined so as to ensure the plugin doesn't and does report the allocations respectively.
+It's also worth noting that bases are independent of the variable names they're allocated to. Take the following section, where \texttt{TOO\_LARGE} and \texttt{SMALL\_ENOUGH} are appropriately defined so as to ensure the plug-in doesn't and does report the allocations respectively.
 
 \lstinputlisting[style=CStyle]{samples/allocbranching.c}
 
-The plugin will report the allocation on line 3 even though \texttt{val} can also be too large to report. This is because \texttt{val}'s value is found by \toolname{EVA} to be a set of bases (from lines 1 and 3) where one is too large to report and the other is small enough, rather than describing it as a single base with a range which extends enough as to be too large.
+The plug-in will report the allocation on line 3 even though \texttt{val} can also be too large to report. This is because \texttt{val}'s value is found by \toolname{EVA} to be a set of bases (from lines 1 and 3) where one is too large to report and the other is small enough, rather than describing it as a single base with a range which extends enough as to be too large.
 
-This differs from the following example, where there is only one base which has a size which is an interval too large to report.
+This differs from the following example, in which there is only one base which has an interval too large to report as its size.
 
 \lstinputlisting[style=CStyle]{samples/valbranching.c}
 
