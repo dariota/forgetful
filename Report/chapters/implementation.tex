@@ -57,7 +57,7 @@ This is normalised into something like the following by \toolname{Frama-C}
 
 We note in particular that rewrites are performed in order to avoid multiple operations occurring on a single line, such as splitting out the evaluation of return values and their actual return, or the evaluation of expressions involving function calls and the actual function call. This prevents an arbitrarily complex AST from being constructed.
 
-The AST itself as provided to plug-ins to traverse is also annotated. It can be annotated in the source code itself, using \toolname{Frama-C}'s ACSL to add specifications, or annotations can be added by other plug-ins as they discover properties of the code~\cite{framaplug}.
+The AST itself as provided to plug-ins to traverse is also annotated. It can be annotated in the source code itself, using \toolname{Frama-C}'s ACSL\footnote{ANSI/ISO C Specification Language, used to formally define function contracts} to add specifications~\cite{framaacsl}, or annotations can be added by other plug-ins as they discover properties of the code~\cite{framaplug}.
 
 The root of the AST is a representation of the file being processed, which contains a collection of globals, of which we're only interested in functions. Other globals include declarations of variables, types, structs, unions, enums, and some other miscellaneous things.
 
@@ -73,7 +73,7 @@ Values can be described as a discrete set of values, as an interval, or as an in
 
 \lstinputlisting[style=CStyle,firstline=21,lastline=38]{samples/eva.c}
 
-Assuming that the level of semantic constant folding \toolname{Frama-C} is permitted to do is high enough to fully evaluate the loop and that \texttt{NUM\_PRIMES} is set to 8, \toolname{EVA} produces the following values at the end of the loop
+Assuming that the level of semantic constant folding \toolname{Frama-C} is permitted to do is high enough to fully evaluate the loop and that \varname{NUM\_PRIMES} is set to 8, \toolname{EVA} produces the following values at the end of the loop
 
 \begin{table}
 	\centering
@@ -81,17 +81,17 @@ Assuming that the level of semantic constant folding \toolname{Frama-C} is permi
 		\toprule
 		\textbf{Variable} & \textbf{Values} & \textbf{Variable} & \textbf{Values} \\
 		\midrule
-		\texttt{morePrimes[0]} & \{2\} & \texttt{morePrimes[4]} & \{11\} \\
-		\texttt{morePrimes[1]} & \{3\} & \texttt{morePrimes[5]} & \{13\} \\
-		\texttt{morePrimes[2]} & \{5\} & \texttt{morePrimes[6]} & \{17\} \\
-		\texttt{morePrimes[3]} & \{7\} & \texttt{morePrimes[7]} & \{19\} \\
-		\texttt{randVal} & [0..32767] & \texttt{index} & \{8\} \\
-		\texttt{randPrime} & \{2; 3; 5; 7; 11; 13; 17; 19\} & & \\
+		\varname{morePrimes[0]} & \{2\} & \varname{morePrimes[4]} & \{11\} \\
+		\varname{morePrimes[1]} & \{3\} & \varname{morePrimes[5]} & \{13\} \\
+		\varname{morePrimes[2]} & \{5\} & \varname{morePrimes[6]} & \{17\} \\
+		\varname{morePrimes[3]} & \{7\} & \varname{morePrimes[7]} & \{19\} \\
+		\varname{randVal} & [0..32767] & \varname{index} & \{8\} \\
+		\varname{randPrime} & \{2; 3; 5; 7; 11; 13; 17; 19\} & & \\
 		\bottomrule
 	\end{tabular}
 \end{table}
 
-In particular, note that each item in the array \texttt{morePrimes} is tracked separately by \toolname{EVA}, that \texttt{randPrime} can take on any of the prime values, that \texttt{randVal} can take on any values between 0 and \toolname{Frama-C}'s \texttt{RAND\_MAX}, and that variables that can only take on a single value are considered to have a value which is a singleton set.
+In particular, note that each item in the array \varname{morePrimes} is tracked separately by \toolname{EVA}, that \varname{randPrime} can take on any of the prime values, that \varname{randVal} can take on any values between 0 and \toolname{Frama-C}'s \varname{RAND\_MAX}, and that variables that can only take on a single value are considered to have a value which is a singleton set.
 
 Next, we consider the values reported if the semantic constant folding allowed is set too low to evaluate anything past the first prime. The values reported are now
 
@@ -101,22 +101,22 @@ Next, we consider the values reported if the semantic constant folding allowed i
 		\toprule
 		\textbf{Variable} & \textbf{Values} & \textbf{Variable} & \textbf{Values} \\
 		\midrule
-		\texttt{morePrimes[0]} & \{2\} & \texttt{index} & \{8\} \\
-		\texttt{morePrimes[1..7]} & [3..2147483647] or UNINITIALIZED & \texttt{randVal} & [0..32767] \\
-		\texttt{randPrime} & [2..2147483647] & & \\
+		\varname{morePrimes[0]} & \{2\} & \varname{index} & \{8\} \\
+		\varname{morePrimes[1..7]} & [3..2147483647] or UNINITIALIZED & \varname{randVal} & [0..32767] \\
+		\varname{randPrime} & [2..2147483647] & & \\
 		\bottomrule
 	\end{tabularx}
 \end{table}
 
-This time we note that EVA can no longer determine whether the loop ever terminates and cannot determine the values for all indices of the \texttt{morePrimes} array, nor if they're ever initialised (due to the possibility of overflow in \texttt{current} without index being incremented sufficient times to exit the loop). As expected, \texttt{randPrime}'s possible values also cannot be determined, as it depends on full evaluation of all values in \texttt{morePrimes}. However, the other variables do not depend on the loop, so they can be correctly evaluated regardless.
+This time we note that EVA can no longer determine whether the loop ever terminates and cannot determine the values for all indices of the \varname{morePrimes} array, nor if they're ever initialised (due to the possibility of overflow in \varname{current} without index being incremented sufficient times to exit the loop). As expected, \varname{randPrime}'s possible values also cannot be determined, as it depends on full evaluation of all values in \varname{morePrimes}. However, the other variables do not depend on the loop, so they can be correctly evaluated regardless.
 
-Next, increasing \texttt{NUM\_PRIMES} to 9 causes \toolname{EVA} to decide \texttt{randPrime} has too many values, so it reduces its precision to [2..23] which still contains all the correct values with as much precision as possible without storing the individual values.
+Next, increasing \varname{NUM\_PRIMES} to 9 causes \toolname{EVA} to decide \varname{randPrime} has too many values, so it reduces its precision to [2..23] which still contains all the correct values with as much precision as possible without storing the individual values.
 
-Additionally, changing line 12 so that \texttt{randPrime} is assigned \texttt{current * 4} causes \toolname{EVA} to again degenerate its set of values into [2..76]0\%2, which is the most complicated value type \toolname{EVA} can produce, and indicates that values start at 2 with an offset of 0 and every second value is potentially valid. This includes all the valid values (\{8; 12; 20; 28; 44; 52; 68; 76\}), but is less precise than an alternative interval of [8..76]0\%4. It's not clear why \toolname{EVA} choose one instead of the other.
+Additionally, changing line 12 so that \varname{randPrime} is assigned \varname{current * 4} causes \toolname{EVA} to again degenerate its set of values into [2..76]0\%2, which is the most complicated value type \toolname{EVA} can produce, and indicates that values start at 2 with an offset of 0 and every second value is potentially valid. This includes all the valid values (\{8; 12; 20; 28; 44; 52; 68; 76\}), but is less precise than an alternative interval of [8..76]0\%4. It's not clear why \toolname{EVA} choose one instead of the other.
 
-While this covers all simple values such as integers, floats, and even structs (which function similar to an array, where each member is separately displayed), it doesn't cover pointers. There are two kinds of pointer which are represented identically. The first is a pointer to an existing variable such as \texttt{\&randPrime}, while the second is a pointer created by a call to a function like \malloc{}. Both types are represented as \texttt{\{\{ \&varname \}\}}, where \texttt{varname} is either the name of the variable pointed to, or something of the form \texttt{\{\{\&\_\_malloc\_main\_l33 \}\}} in the case of \malloc{}, where a unique variable name is generated, representing a point in heap memory which \toolname{EVA} calls a Base.
+While this covers all simple values such as integers, floats, and even structs (which function similar to an array, where each member is separately displayed), it doesn't cover pointers. There are two kinds of pointer which are represented identically. The first is a pointer to an existing variable such as \varname{\&randPrime}, while the second is a pointer created by a call to a function like \malloc{}. Both types are represented as \varname{\{\{ \&varname \}\}}, where \varname{varname} is either the name of the variable pointed to, or something of the form \varname{\{\{\&\_\_malloc\_main\_l33 \}\}} in the case of \malloc{}, where a unique variable name is generated, representing a point in heap memory which \toolname{EVA} calls a Base.
 
-Bases can be collected in sets, same as regular values, but cannot form an interval. There is also a special pointer, \texttt{NULL}, representing exactly that and marked as a potential return value by \toolname{Frama-C}'s internal version of \malloc{}, although that can be disabled by one of \toolname{EVA}'s options~\cite{framamalloc}. Clearly, bases are of particular interest for the project.
+Bases can be collected in sets, same as regular values, but cannot form an interval. There is also a special pointer, \varname{NULL}, representing exactly that and marked as a potential return value by \toolname{Frama-C}'s internal version of \malloc{}, although that can be disabled by one of \toolname{EVA}'s options~\cite{framamalloc}. Clearly, bases are of particular interest for the project.
 
 \section{Development of the \toolname{Forgetful} Plug-in}
 
@@ -155,11 +155,11 @@ On a \free{}, \toolname{EVA} is used to determine what bases it could be freeing
 Of course, not all allocations have a size that can be statically determined, with many instead having an interval as described in Section~\ref{EVA}. In order to simplify application of the patch in cases where the allocation size is an interval, these are only reported if the maximum value of the interval is less than or equal to the configured maximum size to report. However, this means that the plug-in cannot detect the case described by Stenberg in \toolname{cURL}~\cite{curlmalloc}, as the allocation was not always below the size chosen for stack allocation.\\
 Different behaviour for intervals could be added, to allow for cases where stack allocation or heap allocation are decided between at run-time.
 
-It's also worth noting that bases are independent of the variable names they're allocated to. Take the following section, where \texttt{TOO\_LARGE} and \texttt{SMALL\_ENOUGH} are appropriately defined so as to ensure the plug-in doesn't and does report the allocations respectively.
+It's also worth noting that bases are independent of the variable names they're allocated to. Take the following section, where \varname{TOO\_LARGE} and \varname{SMALL\_ENOUGH} are appropriately defined so as to ensure the plug-in doesn't and does report the allocations respectively.
 
 \lstinputlisting[style=CStyle]{samples/allocbranching.c}
 
-The plug-in will report the allocation on line 3 even though \texttt{val} can also be too large to report. This is because \texttt{val}'s value is found by \toolname{EVA} to be a set of bases (from lines 1 and 3) where one is too large to report and the other is small enough, rather than describing it as a single base with a range which extends enough as to be too large.
+The plug-in will report the allocation on line 3 even though \varname{val} can also be too large to report. This is because \varname{val}'s value is found by \toolname{EVA} to be a set of bases (from lines 1 and 3) where one is too large to report and the other is small enough, rather than describing it as a single base with a range which extends enough as to be too large.
 
 This differs from the following example, in which there is only one base which has an interval too large to report as its size.
 
