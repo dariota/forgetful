@@ -4,8 +4,6 @@ Two initial approaches to create the tool were considered: hooking directly into
 
 \section{Goals of the Plug-in}
 
-\todo{What are the initial goals of the plug-in, including those that weren't achieved? How do these goals directly relate to the patch?}
-
 There were a small set of goals for the plug-in to achieve, both functional and non-functional.
 
 \subsection{Non-Functional Goals}
@@ -134,14 +132,25 @@ The visitor classes are classes implementing the visitor design pattern, intende
 	Represent an operation to be performed on the elements of an object structure. Visitor lets you define a new operation without changing the classes of the elements on which it operates.~\cite{gof}
 \end{quote}
 
-The benefit of this pattern is that it allows the easy addition of new operations on the AST, with the downside being that it's difficult to add new types of node to the AST, but given the nature of the AST new types of nodes are rare anyway.
+The benefit of this pattern is that it allows the easy addition of new operations on the AST, with the downside being that it's difficult to add new types of node to the AST, but given the nature of the AST new types of nodes are rare.
 
 Concretely, for the development of the plug-in, this means that it can simply extend the in-place visitor (since the plug-in will not modify the AST itself, otherwise it would have to use the copy visitor to avoid corrupting information already attached to the AST~\cite{framaplug}) and override the functions for visiting individual statements and for visiting the function declaration node. \\
 This will allow the plug-in to track which function it's currently in for scoping purposes, and to inspect the contents of statements in order to determine if they contain a \malloc{} or \free{}.
 
+\toolname{Frama-C}'s documentation is limited, with many types having no documentation or referring the reader to either the plug-in development guide or the user guide with no indication of what section within the guides are relevant. As such, determining what purpose certain nodes in the AST served had to be determined through trial and error. For example, the \texttt{Block} node represents a block (such as a loop body) and as such contains a list of statements, but the visitor doesn't have to traverse those statements as they're actually duplicated.\\
+Trial and error was also the method used to determine which nodes \malloc{} and \free{} could appear in after normalisation of the AST.
+
 \subsection{Allocation Tracking}
 
-\todo{describe the process used to track the allocation throughout a program}
+Allocation tracking occurs only within any given function so as to ensure any allocations whose free site is found are short-lived, and specifically inter-procedural. This is non-essential, but is the easiest case of the pattern to replace with stack allocation.
+
+To actually track allocations, a hashtable mapping a base's unique ID to the site where it was allocated is created. Each time a new function is visited, the hashtable is cleared to prevent previously seen allocations in different functions from being erroneously reported when they're \free{}d elsewhere.\\
+The unique base ID is provided by \toolname{Frama-C}, and doesn't change throughout the analysis, making it ideal to look up bases when they are \free{}d to determine if they're short-lived.
+
+Only allocations of a configurable maximum size or less are added to the hashtable to ensure that the only ones reported are those that can feasibly be stack allocated instead. Their location (filename and line number) is stored along with the statement they originated in so that the notification to the user can clearly indicate where changes are to be made.
+\todo{image from the demo file for illustration}
+
+\todo{discuss the free, determining the size of allocation, handling of intervals, handling of branching/multiple values}
 
 \subsection{Difficulties Encountered}
 
