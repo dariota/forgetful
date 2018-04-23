@@ -65,7 +65,7 @@ Within a function node we're interested in its statement list, which contains st
 
 \toolname{Frama-C} alone doesn't provide any sort of value or escape analysis, instead leaving this to be provided by plug-ins. The primary plug-in providing these features is called \toolname{Evolved Value Analysis} (\toolname{EVA}). Note that this distinction is largely symbolic, as \toolname{EVA} is statically connected to the \toolname{Frama-C} kernel, unlike regular plug-ins.
 
-\subsection{The \toolname{Evolved Value Analysis} Plug-in}
+\subsection{The \toolname{Evolved Value Analysis} Plug-in} \label{EVA}
 
 \toolname{EVA} provides, at any given point in the AST, a set or interval describing values possible at a given point. Values can be requested for expressions or variables with respect to a given statement, and they can be evaluated either before or after execution of that statement. \toolname{EVA} also performs semantic constant folding, allowing it to be used even on code including loops~\cite{framaeva}.
 
@@ -150,7 +150,20 @@ The unique base ID is provided by \toolname{Frama-C}, and doesn't change through
 Only allocations of a configurable maximum size or less are added to the hashtable to ensure that the only ones reported are those that can feasibly be stack allocated instead. Their location (filename and line number) is stored along with the statement they originated in so that the notification to the user can clearly indicate where changes are to be made.
 \todo{image from the demo file for illustration}
 
-\todo{discuss the free, determining the size of allocation, handling of intervals, handling of branching/multiple values}
+On a \free{}, \toolname{EVA} is used to determine what bases it could be freeing, and from there its ID is used to determine if the base identifies a small allocation and where it was allocated using the aforementioned hashtable.
+
+Of course, not all allocations have a size that can be statically determined, with many instead having an interval as described in Section~\ref{EVA}. In order to simplify application of the patch in cases where the allocation size is an interval, these are only reported if the maximum value of the interval is less than or equal to the configured maximum size to report. However, this means that the plugin cannot detect the case described by Stenberg in \toolname{cURL}~\cite{curlmalloc}, as the allocation was not always below the size chosen for stack allocation.\\
+Different behaviour for intervals could be added, to allow for cases where stack allocation or heap allocation are decided between at run-time.
+
+It's also worth noting that bases are independent of the variable names they're allocated to. Take the following section, where \texttt{TOO\_LARGE} and \texttt{SMALL\_ENOUGH} are appropriately defined so as to ensure the plugin doesn't and does report the allocations respectively.
+
+\lstinputlisting[style=CStyle]{samples/allocbranching.c}
+
+The plugin will report the allocation on line 3 even though \texttt{val} can also be too large to report. This is because \texttt{val}'s value is found by \toolname{EVA} to be a set of bases (from lines 1 and 3) where one is too large to report and the other is small enough, rather than describing it as a single base with a range which extends enough as to be too large.
+
+This differs from the following example, where there is only one base which has a size which is an interval too large to report.
+
+\lstinputlisting[style=CStyle]{samples/valbranching.c}
 
 \subsection{Difficulties Encountered}
 
