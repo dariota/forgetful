@@ -1,6 +1,6 @@
 Two initial approaches to create the tool were considered: hooking directly into the compiler to detect the pattern and automatically patch it (when enabled, and when the pattern is detected with sufficiently high confidence); or creating a plug-in for an existing static analysis platform which could be manually run on existing codebases to detect the pattern. A decision was made, largely for reasons of pragmatism and convenience, to follow the second approach.
 
-\todo{add discussion of pros and cons of both sides}
+In particular, the time to become familiarised with the extensive and complex codebase of a production compiler (which may not evene provide sophisticated value analysis) would lead to a highly reduced chance that the project would be complete within the time allowed.
 
 \section{Goals of the Plug-in}
 
@@ -147,8 +147,10 @@ Allocation tracking occurs only within any given function so as to ensure any al
 To actually track allocations, a hashtable mapping a base's unique ID to the site where it was allocated is created. Each time a new function is visited, the hashtable is cleared to prevent previously seen allocations in different functions from being erroneously reported when they're \free{}d elsewhere.\\
 The unique base ID is provided by \toolname{Frama-C}, and doesn't change throughout the analysis, making it ideal to look up bases when they are \free{}d to determine if they're short-lived.
 
-Only allocations of a configurable maximum size or less are added to the hashtable to ensure that the only ones reported are those that can feasibly be stack allocated instead. Their location (filename and line number) is stored along with the statement they originated in so that the notification to the user can clearly indicate where changes are to be made.
-\todo{image from the demo file for illustration}
+Only allocations of a configurable maximum size or less are added to the hashtable to ensure that the only ones reported are those that can feasibly be stack allocated instead. Their location (filename and line number) is stored along with the statement they originated in so that the notification to the user can clearly indicate where changes are to be made.\\
+For example, in the code listing in Section~\ref{patternsample}, the following is reported by \toolname{Forgetful} if it can determine that \varname{alloc\_size} is small enough to report.
+
+\lstinputlisting[breaklines=true]{samples/forgetful_output.txt}
 
 On a \free{}, \toolname{EVA} is used to determine what bases it could be freeing, and from there its ID is used to determine if the base identifies a small allocation and where it was allocated using the aforementioned hashtable.
 

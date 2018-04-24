@@ -1,0 +1,2 @@
+[forgetful] Candidate for replacement in func: `free(alloced);` (pattern.c:4) frees base allocated at 
+`void *alloced = malloc((unsigned int)alloc_size);` (pattern.c:2)
