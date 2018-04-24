@@ -189,8 +189,13 @@ One case in which the API documentation proved insufficient was in its descripti
 
 \section{Final State of the Plug-in}
 
-What state is the plug-in currently in? How well has it achieved its goals? Refer to future work section.
+The state of the Forgetful plugin is most easily communicated by examining results from running the analysis on various code samples.
 
-\subsection{Identified Sites}
+\lstinputlisting[style=CStyle]{samples/recurse.c}
 
-\subsection{Limitations}
+The above code listing produces no output from \toolname{Forgetful}, and the output from \toolname{EVA} indicates that the issue is with the function \functionname{recurse\_and\_free}. In particular, \toolname{EVA} can't determine whether the function terminates as it doesn't currently support recursion. Since \toolname{Forgetful} depends on \toolname{EVA}, it also can't analyse recursive functions.
+
+The following code listing describes inline which allocations are reported as replaceable with stack allocation. The default max allocation size to report on was set to 48 bytes, based on the results discussed in Chapter~\ref{studies}.
+
+\lstinputlisting[style=CStyle]{samples/demo.c}
+
