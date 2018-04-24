@@ -1,6 +1,6 @@
 This chapter will describe the background of the patch, discussing what leads to its introduction to a codebase with a specific focus on \toolname{cURL}. The project goals are then defined in the context of the patch to be detected and benchmarked.
 
-\section{Background on the Patch}
+\section{Background on the Patch}\label{backgroundsec}
 
 \toolname{cURL}'s first dated change was introduced in April of 1998~\cite{curlrelease}, with three versions already having been released before that. When introduced, guidelines for contributors were loose and didn't particularly discourage varying programming styles or encourage adherence to existing styles in the codebase~\cite{curlcontribute1999}. In the 20 year interim, stricter guidelines have been introduced; all changes require tests and must be sufficiently atomic and so on~\cite{curlcontribute2017}.\\
 However, over 150,000 lines of C have been added in that period of time and under potentially weaker requirements. As a result, there are plenty of places where improvements can be made.

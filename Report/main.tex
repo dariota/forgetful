@@ -67,6 +67,8 @@ sorting=ynt]{biblatex}
 \usepackage{booktabs}
 \usepackage{tabularx}
 
+\usepackage{appendix}
+
 \begin{document}
 	\hypersetup{pageanchor=false}
 	\input{title}
@@ -118,4 +120,9 @@ sorting=ynt]{biblatex}
 	\clearpage
 	\addcontentsline{toc}{chapter}{Bibliography}
 	\printbibliography
+
+	\begin{appendices}
+		\chapter{Source Code} \label{codeappend}
+		\input{appendices/code.tex}
+	\end{appendices}
 \end{document}
