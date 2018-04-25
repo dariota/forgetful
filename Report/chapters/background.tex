@@ -68,7 +68,7 @@ The tool should take as many of these cases into consideration as possible, to a
 
 Development of the tool is discussed in depth in Chapter~\ref{implementation}.
 
-\subsection{Determining the Patch's Performance Impact on Performance}
+\subsection{Determining the Patch's Impact on Performance}
 
 First, the maximum expected performance impact should be found, to set an expectation of what the best case result would be. To that end, two bespoke benchmarks were written: one to attempt to trigger certain slow behaviours in the allocator that can then be avoided by stack allocating instead; another to simulate a simple but realistic benchmark to test the results of the patch in isolation.
 
