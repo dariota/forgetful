@@ -1,0 +1,2 @@
+[forgetful] Candidate for replacement in main: `free(alloced - 1);` (samples/transformedOut.c:5) frees base allocated at `
+    tmp = malloc((unsigned int)1);` (samples/transformedOut.c:4)

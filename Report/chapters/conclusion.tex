@@ -30,7 +30,7 @@ Another issue with \functionname{alloca} is that it has no way to indicate if th
 
 \subsubsection{Handling The Downsides}
 
-A better solution than the \functionname{dynamic} or \functionname{stack} allocation methods may be somewhere in between the two. Assuming that the lack of portability of \functionname{alloca} is not an issue, some of its benefits can be used to eliminate some downsides of the \functionname{dynamic} method.
+A better solution than the \functionname{dynamic} or \functionname{stack} allocation methods may be somewhere in between the two. Assuming that the lack of portability of \functionname{alloca} is not an issue, some of its benefits can be used to eliminate some downsides of the \functionname{dynamic} method. This is referred to as the \functionname{hybrid} allocation method hereafter.
 
 Rather than performing a check on the input size and using a statically declared buffer on the stack, the stack allocation itself can be performed with \functionname{alloca} (or, under the C99 standard, a variable length array could be used with portability benefits). This would prevent bloating the stack unnecessarily, allowing only the buffers that will actually get used to be stack allocated.
 
@@ -47,11 +47,48 @@ This observation was noted in Proebsting's~Law, in which Proebsting claimed the 
 	These assumptions lead to the conclusion that compiler optimization advances double computing power every 18 years. […] compiler optimizations contribute only 4\% [per year]. Basically, compiler optimization work makes only marginal contributions.~\cite{proebstingdecl}
 \end{quote}
 
-These findings were formalised 3 years later by Scott, in which the rate of improvement was estimated to be closer to 2.8-3.6\% per year, or even as high as 4.9\%, depending on what year was taken as the starting point in which compiler optimisations begun to be developed~\cite{proebstingformal}. Scott also notes that there's no reason to give up on compiler optimisations, as any performance benefit is better than none, and in particular there's no reason to turn down existing performance benefits.
+These findings were formalised 3 years later by Scott, in which the rate of improvement was estimated to be closer to 2.8–3.6\% per year, or even as high as 4.9\%, depending on what year was taken as the starting point in which compiler optimisations begun to be developed~\cite{proebstingformal}. Scott also notes that there's no reason to give up on compiler optimisations, as any performance benefit is better than none, and in particular there's no reason to turn down existing performance benefits.
 
 \section{State of the Plug-in}
 
-What state is the plug-in left in, is there much work to be done, what would be done with more time, what benefits would those changes have/what are the priorities
+The current state of the \toolname{Forgetful} plug-in is described in Section~\ref{pluginstate}, where the instances of the pattern it can detect are shown and some of its limitations discussed. Some of these limitations are outside of the control of the plug-in, such as the inability to process functions which use recursion, which is imposed by \toolname{EVA}. Other limitations, such as only performing intra-procedural analysis, or the simplified handling of intervals, are internal limitations.
+
+\subsection{Interval Handling}
+
+As mentioned in Section~\ref{alloctrack}, the handling of allocations whose size is some value from an interval is simplistic, with the allocation only being tracked if the entire interval is smaller than the configured maximum allocation size.
+
+As an alternative, intervals could be accepted if some configurable portion of the interval was smaller than the maximum allocation size. This information could then be used in conjunction with profiling data to determine whether the introduction of the \functionname{hybrid} allocation method or similar would be worthwhile.
+
+\subsection{Intra-Procedural Analysis}
+
+\toolname{Forgetful} is currently limited to intra-procedural analysis, due to the additional complexity that inter-procedural analysis would add and the limited time available to complete the project. Tracking the progress of allocated blocks of memory across function boundaries could significantly improve the quality and number of sites that \toolname{Forgetful} can report.
+
+Consider the following code listing:
+
+\lstinputlisting[style=CStyle]{samples/xmalloc.c}
+
+Currently, \toolname{Forgetful} cannot detect that \varname{unreported} is a candidate for replacement, despite \functionname{xmalloc} being a simple wrapper on \malloc{} which cannot return \varname{NULL}. By tracking allocations across function calls, this case could be detected.
+
+This pattern is not unusual, and is similar in structure to a constructor function which allocates and initialises a struct, again being quite a thin wrapper on \malloc{} with some setup steps on the returned value.
+
+Barrett and Zorn defined a term for function invocations which eventually led to a \malloc{}, calling them length-N call chains, where a length-1 call chain is a direct invocation of \malloc{}. While researching the ability to predict lifetimes at allocation sites, they discovered that length-4 call chains were almost always sufficiently long to determine the lifetime of a given allocation~\cite{predictors}. \\
+Their methods and goals were different to this project's, and their figures were found experimentally with a limited number of programs 25 years ago, but their findings suggest that analysing longer call-chains would be of worth.
+
+\subsection{Notification Output}
+
+The output displayed in Section~\cite{alloctrack} is real, but is not representative of \toolname{Forgetful}'s output. As analysis is performed on the normalised AST, it may occasionally reference statements that do not exist in the source code itself. Consider the following code listing:
+
+\lstinputlisting[style=CStyle]{samples/transformedOut.c}
+
+The statement on line 2 is rewritten to the following:
+
+\lstinputlisting[style=CStyle]{samples/normalisedOut.c}
+
+This means that when the allocation is reported, it reports the contents of line 4 as the allocation site, which makes it difficult for the user to discern what allocation is being referred to, as can be seen in the following output from the plug-in.
+
+\lstinputlisting[breaklines=true]{samples/transformed_output.txt}
+
+The formatting of this output raises another issue that could be revisited, which is that the output is not easily machine parsable. This could make it less useful in automated pipelines using the tool to detect issues in pull requests, for example.
 
 \section{Benefit of Further Work}
 

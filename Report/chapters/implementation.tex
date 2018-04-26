@@ -151,7 +151,7 @@ This will allow the plug-in to track which function it's currently in for scopin
 \toolname{Frama-C}'s documentation is limited, with many types having no documentation or referring the reader to either the plug-in development guide or the user guide with no indication of what section within the guides are relevant. As such, determining what purpose certain nodes in the AST served had to be determined through trial and error. For example, the \texttt{Block} node represents a block (such as a loop body) and so contains a list of statements, but the visitor doesn't have to traverse those statements as they're actually duplicated.\\
 Trial and error was also the method used to determine which nodes \malloc{} and \free{} could appear in after normalisation of the AST\@.
 
-\subsection{Allocation Tracking}
+\subsection{Allocation Tracking}\label{alloctrack}
 
 Allocation tracking is performed only within any given function so as to ensure any allocations whose free site is found are short-lived, and specifically inter-procedural. This is non-essential, but is the easiest case of the pattern to replace with stack allocation.
 
@@ -200,7 +200,7 @@ One case in which the API documentation proved insufficient was in its descripti
 
 \toolname{EVA}'s documentation was the most lacking, with the majority of its manual being dedicated to users interacting with \toolname{EVA} through ACSL or the \toolname{Frama-C} GUI\@. In the entire manual, there is only one mention of an \toolname{EVA} API, which is the \functionname{value} function. However, the \functionname{value} function only returns the value before a statement has been executed and the Forgetful plug-in needs access to the result after a \malloc{} call. A solution was eventually found online~\cite{foldstate}, but searching for one led to significant delays.
 
-\section{Final State of the Plug-in}
+\section{Final State of the Plug-in}\label{pluginstate}
 
 The state of the Forgetful plugin is most easily communicated by examining results from running the analysis on various code samples.
 
