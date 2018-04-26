@@ -1,8 +1,40 @@
-This chapter will include high level summaries and conclusions on:
-
 \section{Results}
 
-Did it match the predictions, if not, hypothesize why not
+There are two main categories of results to be discussed, the specialised benchmarks and the real world study.
+
+\subsection{Specialised Benchmarks}
+
+The specialised benchmarks, while constructed to be an ideal case for application of the patch, clearly validate that the patch can result in a significant performance increase in specific cases. 
+
+That being said, they also serve as a reminder that even in simple code there may be hidden issues and complexity, such as \functionname{alloca}'s performance at the \texttt{O0} optimisation level in both of the benchmarks, or the unexpected slowdown of the \functionname{dynamic} allocation method at the \texttt{O3} optimisation level in the sort benchmark.
+
+The benchmarks also highlight that, in certain cases, the patch makes no performance difference (little to no difference by 16 items in the sort benchmark, and minimal at the changeover point of 64 items in the parallel benchmark).
+
+Both the \functionname{dynamic} and \functionname{stack} allocation methods as implemented have downsides that are present even when their benefits are no longer being reaped. Note that the following all assume correct usage, for example ensuring that no pointer to the allocated buffer escapes the function scope, or is made accessible to another thread (as threads do not share stacks~\cite{threadstack}).
+
+\subsubsection{\functionname{dynamic} Method Downsides}
+
+The stack frame is bloated with the buffer even when it's not being used, as space must always be allocated for it even if it's determined at run-time that the buffer can't be used.
+
+Depending on where the buffer is declared, whether multiple buffers are declared (if there are multiple inputs that can be copied to stack allocated buffers), and how large the buffers are, locality of the stack could potentially be affected.
+
+The larger stack frames required also increase the likelihood of stack overflow occurring, which will generally result in a segmentation fault due to the invalid access to storage (outside the bounds of the stack)~\cite{c11std}.
+
+\subsubsection{\functionname{stack} Method Downsides}
+
+The most immediate issue with the \functionname{stack} method as implemented is that it unconditionally uses \functionname{alloca} to allocate the buffer. As mentioned before, \functionname{alloca} is not in the C standard and as such is both machine and compiler dependent.
+
+The unconditional allocation also means that the risk of stack overflow, and hence a segmentation fault, is even greater than in the \functionname{dynamic} case, due to use of \functionname{alloca} even if the allocation to be performed is very large.
+
+Another issue with \functionname{alloca} is that it has no way to indicate if the stack frame cannot be extended. Unlike \malloc{}, it never returns \varname{NULL}. This means that is no way to tell if an allocation was successful until the buffer is used, causing a stack overflow and segmentation fault.
+
+\subsubsection{Handling The Downsides}
+
+A better solution than the \functionname{dynamic} or \functionname{stack} allocation methods may be somewhere in between the two. Assuming that the lack of portability of \functionname{alloca} is not an issue, some of its benefits can be used to eliminate some downsides of the \functionname{dynamic} method.
+
+Rather than performing a check on the input size and using a statically declared buffer on the stack, the stack allocation itself can be performed with \functionname{alloca} (or, under the C99 standard, a variable length array could be used with portability benefits). This would prevent bloating the stack unnecessarily, allowing only the buffers that will actually get used to be stack allocated.
+
+To handle the increased risk of a segmentation fault, a signal handler could be written capturing the \texttt{SIGSEGV} signal raised. However, signal handlers are extremely restricted in what they can do, which functions they can call, and even which variables they can write to~\cite{signalhandling}. The increase is complexity resulting from needing to write and maintain this signal handler, if a signal handler can even be written to sufficiently generically resolve stack overflow errors\footnote{A trivial, but not necessarily useful, handler simply expands the stack when a stack overflow is detected, but this is unlikely to be possible to do for any extended amount of time. This also requires the handler to be able to distinguish between a signal raised due to a stack overflow or due to another reason, such as a \varname{NULL} dereference.}, is unlikely to be justified by any performance benefits gained.
 
 \section{State of the Plug-in}
 
