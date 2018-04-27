@@ -76,7 +76,7 @@ Their methods and goals were different to this project's, and their figures were
 
 \subsection{Notification Output}
 
-The output displayed in Section~\cite{alloctrack} is real, but is not representative of \toolname{Forgetful}'s output. As analysis is performed on the normalised AST, it may occasionally reference statements that do not exist in the source code itself. Consider the following code listing:
+The output displayed in Section~\ref{alloctrack} is real, but is not representative of \toolname{Forgetful}'s output. As analysis is performed on the normalised AST, it may occasionally reference statements that do not exist in the source code itself. Consider the following code listing:
 
 \lstinputlisting[style=CStyle]{samples/transformedOut.c}
 
@@ -92,4 +92,16 @@ The formatting of this output raises another issue that could be revisited, whic
 
 \section{Benefit of Further Work}
 
-Would further work in this space (not specifically the plug-in) be beneficial? If so, why/what should be done first?
+Possibilities for future work in this space are discussed in Chapter~\ref{future} in detail, but it is worth discussing Proebsting and Scott's outlooks on further research into compiler optimisations.
+
+\todo{notes from Scott on slight bias against optimisations due to optimisations that can't be disabled, backed up by Pugh}
+
+\todo{notes from Scott on disproportionate improvement of FP algos}
+
+\todo{notes from Proebsting's site about higher level things, comments from Pugh suggesting the same}
+
+\todo{issues with existing benchmarks – they're unrealistic, low level, hand optimised, horrible style, focus on expression/statement level optimisations rather than big picture}
+
+\todo{higher level constructs, safety checks, clean \& simple code (loop unrolling, cache aligning), ADTs as efficient as primitives, guarantees about performance (e.g. TCO in Haskell/Kotlin), swapping out algorithms for efficient versions with the same result (sorts), parallelism}
+
+\todo{what about the benefit of an RTS and its optimisations?}
