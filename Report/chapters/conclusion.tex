@@ -90,18 +90,50 @@ This means that when the allocation is reported, it reports the contents of line
 
 The formatting of this output raises another issue that could be revisited, which is that the output is not easily machine parsable. This could make it less useful in automated pipelines using the tool to detect issues in pull requests, for example.
 
-\section{Benefit of Further Work}
+\section{Further Work in the Space of Optimisation}
 
-Possibilities for future work in this space are discussed in Chapter~\ref{future} in detail, but it is worth discussing Proebsting and Scott's outlooks on further research into compiler optimisations.
+\todo{revisit this chapter in the context of the future work chapter}
 
-\todo{notes from Scott on slight bias against optimisations due to optimisations that can't be disabled, backed up by Pugh}
+Possibilities for future work in this exact space are discussed in Chapter~\ref{future} in detail, but it is worth discussing outlooks on further research into compiler optimisations in general, as they will guide suggestions on where future research should be directed.
 
-\todo{notes from Scott on disproportionate improvement of FP algos}
+\subsection{Potential For Bias Against Optimisations In Proebsting's Law}
 
-\todo{notes from Proebsting's site about higher level things, comments from Pugh suggesting the same}
+Scott notes four potential issues with his analysis of Proebsting's Law. While the first three are suitably discussed and dismissed, the fourth is briefly covered and then assumed to not disproportionately affect the analysis. The issue is that it is impossible to fully disable all optimisations in a compiler through configuration.
 
-\todo{issues with existing benchmarks – they're unrealistic, low level, hand optimised, horrible style, focus on expression/statement level optimisations rather than big picture}
+The method used involves compiling certain benchmarks first with all compiler optimisations disabled through configuration options, then again with the flags recommended by the vendors for those benchmarks. The assumptions are that a compiler with all optimisations disabled is equivalent to a compiler before new optimisations were discovered and implemented. However, certain optimisations such as peephole optimisations or more efficient code generation techniques cannot be disabled. This results in a baseline program which is more efficient than it would have been, had it been compiled with an older compiler~\cite{proebstingformal}.
 
-\todo{higher level constructs, safety checks, clean \& simple code (loop unrolling, cache aligning), ADTs as efficient as primitives, guarantees about performance (e.g. TCO in Haskell/Kotlin), swapping out algorithms for efficient versions with the same result (sorts), parallelism}
+As a result of a more efficient baseline program, the relative improvement is lower, biasing the results against higher performance increases.
 
-\todo{what about the benefit of an RTS and its optimisations?}
+Further work determining a more accurate and general figure (or figures) for year-on-year improvements that can be reasonably expected of compiler optimisations would provide a point of reference to determine whether a given optimisation is worth introducing to industrial compilers.
+
+\subsection{Disproportionate Improvement of Optimisations}
+
+Proebsting's Law seeks to make a general prediction about performance improvements due to compiler optimisations over time but, as Scott notes, different types of benchmarks display very different levels of performance increase.
+
+It is noted that floating point benchmarks improve significantly more than integer based benchmarks, which means that scientific applications will likely disproportionately benefit scientific applications~\cite{proebstingformal}.
+
+Similar to the previous section, perhaps determining expected figures for various areas of research could be worthwhile.
+
+\subsection{Targets for Optimisation}
+
+Contrary to the usual definition, \textit{target} here does not refer to a target machine or architecture, but instead the goal of a given optimisation and the research into it.
+
+In declaring his law, Proebsting also suggests that future research be directed at improving programmer productivity, rather than micro-optimisations~\cite{proebstingdecl}. Pugh suggests the same, stating that optimisation of higher level constructs and designs have more space for optimisation than expression and statement-level optimisations.
+
+Alongside these suggestions, Pugh lists a number of areas in which research may be worthwhile, including the following~\cite{optimisationrelevant}:
+
+\begin{itemize}
+	\itemsep-0.25em
+	\item Making higher level constructs and data types as efficient as primitives, with little to no programmer intervention
+	\item Optimising safety checks away, so that safe code can be as performant as unsafe alternatives
+	\item Performing optimisations that allow clean and easily readable code to be as efficient as carefully hand optimised code using techniques such as loop unrolling and cache-aligning related data (this is already performed to certain degrees in industrial compilers, but can require programmer intervention and cluttering code to maximise performance~\cite{gccloops})
+	\item Allowing language level guarantees about certain optimisations and performance, such as guaranteeing that tail-call elimination will occur (this specific case is tentatively offered by Haskell~\cite{haskelltail})
+	\item Replacing inefficient algorithms with efficient versions having the same results, such as detecting presence of a quadratic stable sort and replacing it with a linearithmic stable sort
+	\item Providing stronger safety guarantees for concurrent programs
+\end{itemize}
+
+\subsection{Benchmark Design}
+
+Benchmarks are often designed, as the specialised ones in this project were, to elicit certain behaviours. As such, they are carefully tailored, hand optimised, and written at a very low level to avoid other behaviours that may affect their performance. However, this means that these benchmarks do not reflect real world code, and Pugh even argues that their style is so poor and unrealistic that they shouldn't be exposed to undergraduates~\cite{optimisationrelevant}.
+
+Instead, he suggests, they should be written to reflect that real code is complex, and should use higher level constructs, parallelism and more modular components. This would enable benchmarking of bigger picture optimisations that the preceding sections all eventually build towards.
