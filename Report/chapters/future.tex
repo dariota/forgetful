@@ -1,41 +1,43 @@
-\todo{uses of texttt, emph, poor emphasis on tool names etc}
 \epigraph{A program is never less than 90\% complete, and never more than 95\% complete.}{Terry Baker}
 
 Any non-trivial work is never complete, and the optimisation field is endlessly expandable due to the \textit{full employment for compiler writers} theorem~\cite{compilerimpl}. To that end, listed below are some ideas for potential improvements on the \toolname{Forgetful} plug-in and in the general space of compiler optimisations.
 
 \section{Further Work on Allocation Changes}
 
-\todo{intro here}
+This section discusses potential further work directly on the \toolname{Forgetful} plug-in, and also in the general area of memory allocation research.
 
 \subsection{Detecting Arbitrary Memory Allocations}
 
 The current implementation only finds allocations based on uses of \malloc{} and \free{}. Other ways to allocate memory exist (\functionname{calloc}, \functionname{realloc}, \functionname{alloca}, direct uses of \functionname{mmap} and \functionname{sbrk}), and platforms that stand to gain the most from this optimisation may have their own implementations.
 
-An extension to this work could involve allowing an arbitrary list of functions declared to allocate or deallocate memory, potentially with fully annotated files specifying their behaviour so that \toolname{Frama-C} can be used to its full potential (particularly for value analysis, which relies on these specifications).
+An extension to this work could involve allowing an arbitrary list of functions declared to allocate or deallocate memory, but this would require the existence of annotated files specifying their behaviour so that \toolname{Frama-C} can be used to its full potential (particularly for value analysis, which relies on these specifications).
 
 Alternatively, if there is a willingness to assume a UNIX-like platform, the depth of analysis could be extended to attempt to automatically determine which functions might allocate memory by searching for \functionname{mmap} or \functionname{sbrk} calls and propagating annotations indicating functions that directly or indirectly allocate memory.\\
 The approach propagating allocation information already exists in some form in Infer \cite{fbinfer} static analyser, so future work could also involve extending that platform instead.
 
-\subsection{Automatically Performing Fixes Based}
+\subsection{Automatically Performing Fixes}
 
 Ideally, fixes would be automatically generated and patched into the code as a pre-compilation step, avoiding added complexity from the programmer's point of view while still taking advantage of performance and memory benefits.
 
-Potential intermediate steps toward that goal could involve generation of patches that could be manually applied to code before compilation, introducing the optimisation. Fortunately, \toolname{Frama-C} already has code generation capabilities which could be taken advantage of for this purpose.
+Potential intermediate steps toward that goal could involve generation of patches that could be manually applied to code before compilation, introducing the optimisation.
+
+Based on the documentation for \toolname{Frama-C} and one of its plug-ins, \toolname{PathCrawler}, it is unclear whether there are code generation capabilities in \toolname{Frama-C} or if the plug-in introduced them itself. Depending on this, this goal may be very complicated to complete, and potentially not worthwhile.
 
 \subsection{Higher Precision in Allocation Sizing Calculations}
 
-\todo{what the fuck is this}
+\toolname{Frama-C} has built in defaults for sizes of various types, which mostly seem to be based on a 32-bit architecture. As a result, size calculations can be inaccurate, particularly on 64-bit machines with factor of 2 inaccuracies in any size calculation involving pointers.
 
-Anything that's not an "invalid" validity can't currently be sized properly. The GUI doesn't currently handle this either, simply saying it's an expression of type unsigned int without value information.
-
-Pointers are assumed to be 4 bytes, which is a frama-c default. This could lead to significant inaccuracies building up (generally limited to factors of two).
+Not accounting for these differences will lead to \toolname{Forgetful} recommending replacements at sites where more memory than the configured maximum is allocated. \toolname{Frama-C} provides a system to define sizes of all the types, which could be exposed to users to allow them to specify their architecture details.
 
 \subsection{Alternative Architectures}
 
 For the sake of practicality and convenience, the analysis presented was only performed on a single x86 machine. To be certain whether these results apply more generally, the analysis should also be performed on other architectures.
 
-\todo{make the following subsections of general area of research}
-\section{Potential For Bias Against Optimisations In Proebsting's Law}
+\section{General Compiler Optimisation Research}
+
+This section is concerned with the more general area of research into compiler optimisations, both in terms of optimisations to be researched or implemented, and also in terms of research into measurement of optimisations.
+
+\subsection{Potential For Bias Against Optimisations In Proebsting's Law}
 
 Scott notes four potential issues with his analysis of Proebsting's Law. While the first three are suitably discussed and dismissed, the fourth is briefly covered and then assumed to not disproportionately affect the analysis. The issue is that it is impossible to fully disable all optimisations in a compiler through configuration.
 
@@ -45,7 +47,7 @@ As a result of a more efficient baseline program, the relative improvement is lo
 
 Further work determining a more accurate and general figure (or figures) for year-on-year improvements that can be reasonably expected of compiler optimisations would provide a point of reference to determine whether a given optimisation is worth introducing to industrial compilers.
 
-\section{Disproportionate Improvement of Optimisations}
+\subsection{Disproportionate Improvement of Optimisations}
 
 Proebsting's Law seeks to make a general prediction about performance improvements due to compiler optimisations over time but, as Scott notes, different types of benchmarks display very different levels of performance increase.
 
@@ -53,7 +55,7 @@ It is noted that floating point benchmarks improve significantly more than integ
 
 Similar to the previous section, perhaps determining expected figures for various areas of research could be worthwhile.
 
-\section{Targets for Optimisation}
+\subsection{Targets for Optimisation}
 
 Contrary to the usual definition, \textit{target} here does not refer to a target machine or architecture, but instead the goal of a given optimisation and the research into it.
 
@@ -71,8 +73,8 @@ Alongside these suggestions, Pugh lists a number of areas in which research may 
 	\item Providing stronger safety guarantees for concurrent programs
 \end{itemize}
 
-\section{Benchmark Design}
+\subsection{Benchmark Design}
 
 Benchmarks are often designed, as the specialised ones in this project were, to elicit certain behaviours. As such, they are carefully tailored, hand optimised, and written at a very low level to avoid other behaviours that may affect their performance. However, this means that these benchmarks do not reflect real world code, and Pugh even argues that their style is so poor and unrealistic that they shouldn't be exposed to undergraduates~\cite{optimisationrelevant}.
 
-Instead, he suggests, they should be written to reflect that real code is complex, and should use higher level constructs, parallelism and more modular components. This would enable benchmarking of bigger picture optimisations that the preceding sections all eventually build towards.
+Instead, he suggests, they should be written to reflect that real code is complex, and should use techniques and utilities such as higher level constructs, parallelism and more modular components. This would enable benchmarking of bigger picture optimisations that the preceding sections all eventually build towards.
