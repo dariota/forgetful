@@ -1,9 +1,108 @@
-\section{State of the Art}
+This chapter will discuss:
 
-\section{Similarity of the Patch to Concepts in Generational Garbage Collection}
+\begin{itemize}
+	\item The short-list of static analysis platforms
+	\item Other methods to detect the pattern
+	\item Research into performance of allocator methods
+	\item Validation of the project research space
+\end{itemize}
 
-Background based on similarity to generational GC assumptions (Appel, Shao)
+\section{Static Analysis Platforms}
 
-\section{Predictions on Results of Generalisation of the Patch}
+As mentioned before, three options were considered, after the remaining platforms were eliminated for appearing to be relatively unmaintained. These options were \toolname{Frama-C}, \toolname{Infer}, and \toolname{clang-analyzer}.
 
-Predictions on the results of a generalised application of the patch (vs proebsting's law for compilers)
+These are now discussed in further detail and in retrospect now that the project's requirements and pitfalls are fully known.
+
+\subsection{\toolname{Frama-C}}
+
+While \toolname{Frama-C} was a decent choice for its extensibility and availability of introductory guides to plugin development~\cite{framaplug}, finding assistance/documentation for it was relatively difficult, even for basic functionality of EVA.
+
+Perhaps a better choice would have been to modify/extend a static analysis tool with a more active and modern community (irregular releases consist of dumps of source code rather than open and incremental development~\cite{framagit}, with the first beta release in March 2008~\cite{framahydrogen}), which likely would've made it easier to dig into the codebase even if it wasn't built as intentionally for extensibility.
+
+\toolname{Frama-C}'s (open source) community is not hugely active, with only a few external plug-ins available~\cite{framapluglist}, and not many plug-ins having been created between its initial release a decade ago and now. In fact, the plugin list was last updated 5 years ago.
+
+\subsection{\toolname{Infer}}
+
+To the end of finding a large and active community, Facebook's \toolname{Infer} might have been a better choice. By its own description, \textit{Infer checks for null pointer dereferences, memory leaks, coding conventions and unavailable API’s}~[sic], which suggests it may also have been well suited to the problem thanks to its emphasis on memory issues and tracking memory.
+
+Facebook first open-sourced Infer in June of 2015~\cite{infergit}, at which point it already supported C, Objective-C, C++, Java ($\le$ 1.7) and contained about 100k LoC\footnote{Lines of Code}. Since then, it has averaged 4-6 commits per day (dependending on whether you count weekends), now has about 300k LoC, and supports Java 8 as well as the original languages.
+
+While it wasn't explicitly designed for modularity like Frama-C, its internal structure for checkers is consistent and logical, which should make the addition of new checkers not prohibitively difficult~\cite{infercheckers}.
+
+\subsection{\toolname{clang-analyzer}}
+
+\toolname{clang-analyzer}, which \toolname{Infer} depends on, is the only analyser in this list not written in OCaml, instead being in C++ to match the rest of the \toolname{clang} codebase. Among features listed in its documentation are a few memory analysis checkers (null dereference, double free, stack reference escape detection~\cite{clangchecks}) that could prove to be a useful base to build off. Familiarity with C++ (at least compared to a lack of familiarity with OCaml) could also have proven useful in development, reducing delays.
+
+\toolname{clang-analyzer}'s development is much less active than \toolname{Infer}'s, but still more active (or at least more frequently updated) than \toolname{Frama-C}'s. It also has mailing lists and other community communication channels which could have been useful. It's the oldest of the three, started in September 2007~\cite{clangrelease}, but has had a huge amount of development since then (a caveat here: its full development lifecycle is public, from inception to its current state, unlike the other two, which can make it seem more active).
+
+One unique mark against clang-analyser is its heavy emphasis on OS X related features and tutorials/setup instructions revolving around assumptions of the use of Apple hardware and software, which could cause delays in development, as Apple machines were not available for use.
+
+\section{Alternative Detection Methods}
+
+Other than static analysis/compile-time checking, run-time analysis can also be used to surface issues in the code. This profiling has an added benefit that (used properly), it can better reflect performance under real workloads. There are three main ways of achieving this, which are all different levels of the same thing.
+
+\subsection{Custom Wrapper Functions}
+
+The first method involves a custom allocator wrapper function, which is the approach taken by \toolname{cURL}. In this method, calls to memory management functions are intercepted by redefining them to instead use the custom allocators, using a preprocessor directive such as \texttt{\#define malloc(size) curl\_domalloc(size, \_\_LINE\_\_, \_\_FILE\_\_)} to intercept calls and add in debugging information.
+
+Usage of this system can usually be enabled or disabled at compile time by defining or undefining certain symbols, and a detailed implementation can be seen in \toolname{cURL} itself~\cite{curlallocator}.
+
+This method has the obvious downside that the system must be maintained by its users, who usually have goals orthogonal to it. However, it also allows the most fine-grained control of the three methods, and can easily be extended to also track other functions.
+
+\subsection{Provided Wrapper Functions}
+
+When the fine-grained control of intercepting any given function, or adding more things to profile is not needed, wrapper functions can be found already written available online to be compiled along with your existing code.
+
+Similar to the above, these intercept calls to memory management functions, outputting profiling data to a specified log file. One such example is \toolname{malloc\_count}, which can also track stack usage~\cite{malloccount}. Since these projects are more focused on this specific task, they also attempt to meet standards, which allows the user to use their profiling data with existing graphing tools for memory profiling dumps.
+
+While this method doesn't have the advantage of fine-tuned control of what exact data is dumped nor which functions are intercepted, it also doesn't suffer the disadvantages of maintenance and development of the system. It also benefits over the next method by being faster.
+
+\subsection{Run-time Profiling/Interception}
+
+Without requiring function interception to be included in code at compile time, hooks can be used to intercept calls to any given function. Programs such as \toolname{Valgrind} can use this functionality, for example, to track memory leaks at run-time by tracking all allocated and freed memory, or determine when uninitialised data is used as if it were initialised (as a branch condition, for example)~\cite{valgrind}.
+
+Similarly, programs such as \toolname{Heaptrack} use hooks\footnote{A hook allows interception of events by either intercepting calls at run-time or rewriting calls before a binary is executed} in order to profile memory usage~\cite{heaptrack}. As such, it requires no changes to the actual source or files included for compilation. However, in order to get more detailed information about allocations (such as the line in the source where it occurs), debug symbols must be included in the binary, which involves a minor change to the compilation procedure.
+
+As has been the trend in this section, the increased convenience comes with a decrease in tunability. However, again it comes with an improvement in ease of consumption of data - \toolname{Heaptrack} is a two part tool, one producing a detailed dump while the other consumes the dump to produce a large number of statistics and graphics.
+
+\section{Performance of Allocator Methods}
+
+This section is concerned with research into the performance of existing allocator methods, and also with potential side-effects as a result of replacing a heap allocation with a stack allocation.
+
+\subsection{Locality Impact}
+
+One of the potential side-effects is impact on locality of the data. Replacing dynamic allocations with stack allocation could affect cache-hit frequency, as the stack is likely to be in cache, whereas the next section of the heap may not be, especially if the heap is sectioned out based on allocation sizes. However, Appel and Shao found the effect of using stack or heap allocation for frame allocation to be too trivial to matter in terms of effect on the cache miss rate~\cite{stackvheap}.
+
+They do note that the cache write-miss rate is very high for heap-allocated frames, but this can be mitigated with an appropriate write-miss strategy.
+
+In short, it seems unlikely that the cache miss/hit rate will have a significant impact on the results of the optimisation, but of course architectures and timings have changed over the past two decades - what was trivial then may not be any more (as cache increases in relative speed).
+
+\subsection{Real-Time Considerations}
+
+Another consideration for the utility of the optimisation is the different potential target users. For systems with real-time considerations, using stack allocation instead of heap allocation can be beneficial even without improvement in average case performance increase, due to capping the worst-case performance.
+
+Puaut finds that ratio of average to worst-case performance (obtained analytically) of memory allocation algorithms varies from about 10-10000 (the lower bound algorithms have an average case of about 10x those of the higher bound), while stack allocation has fixed performance, even if bounds checking is added~\cite{mallocperf}. Of course, similar benefits could be obtained with correct use of an allocator designed for that purpose.
+
+However, Puaut also finds that the actual observed ratio of average to worst-case performance ranges from about 1-35, so for real workloads the effect may, again, not be great.
+
+\section{Validation of Project Space}
+
+In order to validate the project space, other attempts to target the same inefficiencies were searched for. Small amounts of short-lived memory is the purview of the youngest generation of generational garbage collection, while other approaches to tackling the same issue could instead go directly to the allocator method in order to explicitly split out these allocations ahead of time.
+
+\subsection{Generation Garbage Collection}
+
+Generational (or ephemeral) garbage collection relies on a hypothesis, supported by empirical measurements, that the most recently created objects are also those most likely to become unreachable quickly.
+
+Supporting this hypothesis, Wilson claims that, while figures vary depending on the source language and program, 80-98\% of all newly-allocated objects "die within a few million instructions, or before another megabyte has been allocated; the majority of objects die even more quickly, within tens of kilobytes of allocation"~\cite{uniprocessorgc}.
+
+In terms of efficiency, Appel makes the counter-intuitive claim that garbage collection collection can be faster than even stack allocation~\cite{stackvgc}. The claim relies on the usage of a copying garbage collector and a sufficiently large amount of physical memory being made available. Key to the assertion is that not every allocation will need to be handled once it's unreachable, as only objects that survive until the next garbage collection need to be handled by copying them to the new heap.
+
+Exact formulae are provided in the paper, parametrisable in terms of: the memory available; instructions taken to copy an object; average size of an object; instructions taken to explicitly free an item; number of allocated items; and instructions taken to traverse the object graph. However, the conclusion is that even arbitrarily efficient explicit freeing always eventually loses to larger amounts of available memory.
+
+\subsection{Allocator Replacement}
+
+There are cases where garbage collection can't be used for one reason or another (insufficient timing guarantees for real-time systems for example), so in these cases alternate systems can be used to take advantage of the large proportion of short-lived allocations.
+
+Barrett and Zorn discus the use of profiling to determine which allocations are short-lived. In particular, they describe an algorithm for lifetime prediction using a combination of profiling data, allocation site and allocation size which (depending on which program they used to benchmark) correctly predicted the lifetimes of 42-99\% of allocations. Clearly these results vary too widely (and only 4 programs were benchmarked) to be a definitive indicator of whether this method is worthwhile~\cite{predictors}.
+
+However, in the same paper, simulated results using lifetime prediction to segregate allocations into specialised areas in the heap (with shorter-lived allocations/deallocations being cheaper) showed that there was significant potential for reduction of memory overhead, improvement of reference locality (by having recent allocations in a small section of the heap likely to be in cache) and occasionally improvement of performance. This system bears some resemblance to concepts in generational garbage collection.
