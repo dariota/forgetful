@@ -1,6 +1,4 @@
-This chapter will include, for each case study: reasoning under which that particular case study was chosen; predictions of the results; the code for the benchmark, or a reference to where the code can be found; results of the benchmark; and a discussion of the results compared to the conclusion.
-
-For the code used in the benchmarks, refer to Appendix~\ref{codeappend}.
+This chapter will include, for each case study: the reasoning under which that particular case study was chosen; predictions of the results; a reference to where the code for the benchmark can be found; results of the benchmark; and a discussion of the results compared to the conclusion.
 
 \section{Specialised Benchmark, Sorting}
 
@@ -10,7 +8,7 @@ The benchmark setup code creates input data of an array of structs containing a 
 
 The benchmarking functions each perform a single allocation before copying the input buffer into the newly allocated block. How this allocation is performed is the core difference. The four types of allocation used are described in Table~\ref{alloctype}.
 
-Note that \functionname{alloca}\footnote{\functionname{alloca} performs a stack allocation at runtime in a similar manner to \malloc{}, but does not perform checks for whether the stack will overflow as a result and doesn't require \free{}ing as restoring the stack pointer will automatically free the block} is used despite its unsuitability for safe and portable code. This is to simplify ensuring that there is always enough space in the \functionname{stack} benchmark function, in which errors are not fatal.\\
+Note that \functionname{alloca}\footnote{\functionname{alloca} performs a stack allocation at runtime in a similar manner to \malloc{}, but does not perform checks for whether the stack will overflow as a result and doesn't require \free{}ing as restoring the stack pointer on function return will automatically free the block} is used despite its general unsuitability for use in safe code. This is to simplify ensuring that there is always enough space in the \functionname{stack} benchmark function, in which errors are not fatal.\\
 Another caveat to the use of \functionname{alloca} is that while it appears to be a standard library function, it's not actually part of the ANSI/ISO-C standard~\cite{c11std} and is simply replaced inline by compiler implementations. This causes portability concerns.
 
 \begin{table}
@@ -21,8 +19,8 @@ Another caveat to the use of \functionname{alloca} is that while it appears to b
 		\midrule
 		\functionname{malloc} & Performs the allocation with \malloc{}, providing a base performance to compare against. \free{}s the allocated block before returning \\
 		\functionname{stack} & Performs the allocation with \functionname{alloca} regardless of the size of the input data even though this would introduce a significant risk of stack overflow in real code. No \free{} required \\
-		\functionname{dynamic} & Performs the allocation with \malloc{} if the input data is larger than a given threshold (in this case, 64 items), otherwise uses an array of static size declared as a local variable (and, hence, stack allocated as part of the calling code). \free{}s before returning if required \\
-		\functionname{external} & Performs no allocation, instead taking a parameter of a sufficiently large buffer to copy data to, which it doesn't \free{}. Acts as a control as no allocation is performed and so it should be the fastest \\
+		\functionname{dynamic} & Performs the allocation with \malloc{} if the input data is larger than a given threshold (in this case, 64 items or 512 bytes), otherwise uses an array of static size declared as a local variable (and, hence, stack allocated as part of the calling code). \free{}s before returning if required \\
+		\functionname{external} & Performs no allocation, instead taking a parameter of a pointer to sufficiently large buffer to copy data to, which it doesn't \free{}. Acts as a control as no allocation is performed and so it should always be the fastest \\
 		\bottomrule
 	\end{tabularx}
 	\caption{Allocation Types}\label{alloctype}
@@ -34,7 +32,7 @@ This benchmark was chosen to provide a baseline for performance changes due to a
 
 \subsection{Predictions}
 
-It is expected that the \functionname{external} allocation method should be fastest, as it spends no time performing allocations. \\
+It is expected that the \functionname{external} allocation method should be fastest, as it spends no time performing allocations/deallocations. \\
 The \functionname{stack} allocation method should be the next fastest, not requiring a \free{} or finding of a suitable block by \malloc{}, and should maintain a small performance increase even for larger input sizes, although this will be dwarfed by the time spent sorting. \\
 \functionname{dynamic} should be roughly tied for performance with \functionname{stack} for small input sizes, thanks to not having the overhead of \functionname{alloca}, but adding the overhead of determining whether to use \malloc{} or not. It also suffers the overhead of a \free{} on exit, and should perform worse than the \functionname{malloc} allocation method on larger input sizes, but again this should be dwarfed by the time spent sorting.
 
@@ -57,19 +55,19 @@ The values in the diagrams are taken from a number of runs, from which the top t
 \begin{figure}[ph]
 	\centering
 	\includegraphics[width=0.8\textwidth]{sort/O1chart}
-	\caption{Everything performing mostly as expected. \functionname{stack} and \functionname{dynamic} seem to perform very similarly, with \functionname{dynamic} unexpectedly underperforming \functionname{malloc} before falling back to \functionname{malloc} level performance at around the same input size as the other methods' performance converge with malloc.}
+	\caption{Everything performing mostly as expected. \functionname{stack} and \functionname{dynamic} seem to perform very similarly, until \functionname{dynamic} unexpectedly starts underperforming \functionname{malloc} shortly before falling back to \functionname{malloc} level performance at around the same input size as the other methods' performance converge with \functionname{malloc}.}
 \end{figure}
 
 \begin{figure}[ph]
 	\centering
 	\includegraphics[width=0.8\textwidth]{sort/O2chart}
-	\caption{Everything mostly as expected. \functionname{dynamic} shouldn't be faster than \functionname{stack}, but the difference is small and the gap is closed after the first item in any case.}
+	\caption{Everything mostly as expected. \functionname{dynamic} shouldn't be faster than \functionname{stack}, but the difference is small and the gap is closed after the first item.}
 \end{figure}
 
 \begin{figure}[ph]
 	\centering
 	\includegraphics[width=0.8\textwidth]{sort/O3chart}
-	\caption{An unusual drop of performance in the \functionname{dynamic} case, with the rest performing as expected. This appears to be caused by function inlining, where the function copying input to the allocated buffer is inlined twice in the \functionname{dynamic} benchmark function. The copy used for the case using \malloc{} is optimised to use \functionname{memcpy} while the other does not. This causes the \functionname{stack} case to perform worse due to the slow copy, rather than any allocation issue.}
+	\caption{An unusual drop of performance in the \functionname{dynamic} case, with the rest performing as expected. This appears to be caused by function inlining, where the function copying input to the allocated buffer is inlined twice in the \functionname{dynamic} benchmark function. The copy used for the case using \malloc{} is optimised to use \functionname{memcpy} while the other does not. This causes the case using stack allocation to perform worse due to the slow copy, rather than any allocation issue.}
 \end{figure}
 
 \begin{figure}[ph]
@@ -82,7 +80,7 @@ The values in the diagrams are taken from a number of runs, from which the top t
 
 Results largely matched the predictions, with the exception of \functionname{dynamic} outperforming \functionname{stack} narrowly. This may be due to the generated code for \functionname{alloca} being slower than the simple check required by the \functionname{dynamic} case.
 
-These results bode well, especially since the lack of significant performance difference between \functionname{dynamic} and \functionname{stack} means that the safer option, \functionname{dynamic} can be used without issue in real code.
+These results bode well, especially since the lack of significant performance difference between \functionname{dynamic} and \functionname{stack} means that the safer option, \functionname{dynamic}, can be used without issue in real code.
 
 \pagebreak
 
@@ -132,9 +130,9 @@ The values in the diagrams are taken from a number of runs, from which the top t
 
 \subsection{Comparison to Predictions}
 
-Similarly to the sort benchmark, results mostly matched the predictions. As expected, performance increases were much more significant than in the sort benchmark. This is expected, as the changes made here are essentially the same as replacing a locking algorithm with a wait-free algorithm.
+Similarly to the sort benchmark, results mostly matched the predictions. As expected, performance increases were much more significant than in the sort benchmark. This is expected, as the changes made here are similar in principle to replacing a locking algorithm with a wait-free algorithm.
 
-However, the situations in which this sort of performance increase would be possible are quite limited, as programs are not often allocating at such a high rate.
+However, the situations in which this sort of performance increase would be possible are quite limited, as programs are not often allocating at such a high rate in parallel.
 
 \pagebreak
 
@@ -144,13 +142,13 @@ The third and last case study involves a more careful analysis of Stenberg's pat
 
 The benchmark is performed by cloning \toolname{cURL}'s source and checking out\footnote{A checkout in this context refers to \texttt{git-checkout}, whereby the state of the code is rewound to a given point} the commits in which the changes were made.
 
-In order to test the linked list changes, simply running regular \toolname{cURL} requests is enough, as indicated by the blog post. For the polling function changes, one of the code samples distributed with the \toolname{cURL} source code exercises the exact function to be benchmarked, \functionname{curl\_multi\_wait}.
+In order to test the linked list changes, simply running regular \toolname{cURL} requests is enough, as indicated by the blog post. For the polling function changes, one of the code samples distributed with the \toolname{cURL} source code is modified to exercise the exact function to be benchmarked, \functionname{curl\_multi\_wait}.
 
 \subsection{Program Reasoning}
 
 Clearer figures for the performance impact on a real-world program were needed. The two previous benchmarks demonstrate theoretical improvements in carefully constructed scenarios, but to gain a better impression of the real-world impact, real-world code must be tested.
 
-Since the blog post lumps in all changes from some 230 or so commits, it can't be assumed to only be a result of the allocation changes. The goal of this benchmark is to isolate the changes with their effects.
+Since the blog post lumps in all changes from some 230 or so commits, performance impact can't be assumed to only be a result of the allocation changes. The goal of this benchmark is to isolate the changes with their effects.
 
 \subsection{Predictions}
 
@@ -166,7 +164,7 @@ To test the linked list changes, a single large and empty file was retrieved fro
 
 \subsection{Patch Code}
 
-Refer to the \texttt{replicate.sh} script in the \texttt{src/curl} directory in Appendix~\ref{codeappend}. Running this script on a machine with the required dependencies (refer to the \toolname{cURL} source to determine what dependencies are required to build it) will produce the executables used to benchmark and run the benchmark.
+Refer to the \texttt{replicate.sh} script in the \texttt{src/curl} directory in Appendix~\ref{codeappend}. Running this script on a machine with the required dependencies (refer to the \toolname{cURL} source to determine what dependencies are required to build it) will produce the executables used to benchmark and then run the benchmark.
 
 \subsection{Results}
 
