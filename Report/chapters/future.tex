@@ -1,6 +1,6 @@
 \epigraph{A program is never less than 90\% complete, and never more than 95\% complete.}{Terry Baker}
 
-Any non-trivial work is never complete, and the optimisation field is endlessly expandable due to the \textit{full employment for compiler writers} theorem~\cite{compilerimpl}. To that end, listed below are some ideas for potential improvements on the \toolname{Forgetful} plug-in and in the general space of compiler optimisations.
+Any non-trivial work is never complete, and the optimisation field in particular is provably endlessly expandable due to the \textit{full employment for compiler writers} theorem~\cite{compilerimpl}. To that end, listed below are some ideas for potential improvements on the \toolname{Forgetful} plug-in and in the general space of compiler optimisations.
 
 \section{Further Work on Allocation Changes}
 
@@ -13,7 +13,7 @@ The current implementation only finds allocations based on uses of \malloc{} and
 An extension to this work could involve allowing an arbitrary list of functions declared to allocate or deallocate memory, but this would require the existence of annotated files specifying their behaviour so that \toolname{Frama-C} can be used to its full potential (particularly for value analysis, which relies on these specifications).
 
 Alternatively, if there is a willingness to assume a UNIX-like platform, the depth of analysis could be extended to attempt to automatically determine which functions might allocate memory by searching for \functionname{mmap} or \functionname{sbrk} calls and propagating annotations indicating functions that directly or indirectly allocate memory.\\
-The approach propagating allocation information already exists in some form in Infer \cite{fbinfer} static analyser, so future work could also involve extending that platform instead.
+The approach propagating allocation information already exists in some form in the \toolname{Infer}~\cite{fbinfer} static analyser, so future work could also involve extending that platform instead.
 
 \subsection{Automatically Performing Fixes}
 
@@ -27,7 +27,7 @@ Based on the documentation for \toolname{Frama-C} and one of its plug-ins, \tool
 
 \toolname{Frama-C} has built in defaults for sizes of various types, which mostly seem to be based on a 32-bit architecture. As a result, size calculations can be inaccurate, particularly on 64-bit machines with factor of 2 inaccuracies in any size calculation involving pointers.
 
-Not accounting for these differences will lead to \toolname{Forgetful} recommending replacements at sites where more memory than the configured maximum is allocated. \toolname{Frama-C} provides a system to define sizes of all the types, which could be exposed to users to allow them to specify their architecture details.
+Not accounting for these differences will lead to \toolname{Forgetful} recommending replacements at sites where in practice more memory than the configured maximum is allocated. \toolname{Frama-C} provides a system to define sizes of all the types, which could be exposed to users to allow them to specify their architecture details.
 
 \subsection{Alternative Architectures}
 
@@ -37,7 +37,7 @@ For the sake of practicality and convenience, the analysis presented was only pe
 
 This section is concerned with the more general area of research into compiler optimisations, both in terms of optimisations to be researched or implemented, and also in terms of research into measurement of optimisations.
 
-\subsection{Potential For Bias Against Optimisations In Proebsting's Law}
+\subsection{Potential For Bias Against Optimisations In Evaluation of Proebsting's Law}
 
 Scott notes four potential issues with his analysis of Proebsting's Law. While the first three are suitably discussed and dismissed, the fourth is briefly covered and then assumed to not disproportionately affect the analysis. The issue is that it is impossible to fully disable all optimisations in a compiler through configuration.
 
