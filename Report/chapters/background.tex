@@ -1,34 +1,39 @@
-This chapter will describe the background of the patch, discussing what leads to its introduction to a codebase with a specific focus on \toolname{cURL}. The project goals are then defined in the context of the patch to be detected and benchmarked.
+This chapter will describe the changes made to \toolname{cURL} and discuss what situations lead to the production of code which needs this change applied to it. The project goals are then defined in the context of the pattern to be detected and benchmarked.
 
-\section{Background on the Patch}\label{backgroundsec}
+\section{Background on the Changes}\label{backgroundsec}
 
-\toolname{cURL}'s first dated change was introduced in April of 1998~\cite{curlrelease}, with three versions already having been released before that. When introduced, guidelines for contributors were loose and didn't particularly discourage varying programming styles or encourage adherence to existing styles in the codebase~\cite{curlcontribute1999}. In the 20 year interim, stricter guidelines have been introduced; all changes require tests and must be sufficiently atomic and so on~\cite{curlcontribute2017}.\\
+\toolname{cURL}'s first dated change was introduced in April of 1998~\cite{curlrelease}, with three versions already having been released before that. When introduced, guidelines for contributors were loose and didn't particularly discourage varying programming styles or encourage adherence to existing styles in the codebase~\cite{curlcontribute1999}. In the 20 year interim, stricter guidelines have been introduced; all changes require tests, must be sufficiently atomic, must include documentation, and so on~\cite{curlcontribute2017}.\\
 However, over 150,000 lines of C have been added in that period of time and under potentially weaker requirements. As a result, there are plenty of places where improvements can be made.
 
-In particular, Stenberg's post discusses two allocation related changes~\cite{curlmalloc}. The first involves rewriting some generic linked list functions in order to remove all allocation from them, while the second involves rewriting a polling function which takes a copy of its input to copy said input into a stack-allocated buffer in a common case, rather than using \malloc{} every time.
+Stenberg's post discusses two allocation related changes~\cite{curlmalloc}. The first involves rewriting some generic linked list functions to avoid all dynamic memory allocation, while the second involves rewriting a polling function to reduce the number of dynamic memory allocations performed.
 
 \subsection{Linked List Changes}
 
-The original linked list implementation incurred a \malloc{} on every insertion and a \free{} on every deletion, as the data and the linked list node were two separately allocated objects. First the data struct would be allocated and initialised, then passed to the linked list functions, which would then allocate a linked list node struct and point it at the data struct before continuing on to perform the requested operation.
+The change involved rewriting data structs that can be inserted into linked lists as follows:
 
-The change involved rewriting any data structs to also contain a linked list node struct and changing the generic linked list functions to take both a pointer to the data struct and a pointer to the linked list struct (which would just point at the struct contained in the data struct, while allowing the functions to remain generic). This has two beneficial results:
+\lstinputlisting[style=CStyle]{samples/llistchanges.c}
+
+In order to insert the \varname{data\_before} struct into a linked list, a \varname{llist\_node} struct would have to be allocated separately and its data member set to a pointer to the \varname{data\_before} struct. Removing the \varname{data\_before} struct from the linked list would then require \free{}ing the \varname{llist\_node}.\\
+Doing the same with the \varname{data\_after} struct would require no extra allocations/deallocations or pointer assignments (as the data member of its embedded \varname{llist\_node} would only need to be set once).
+
+This has two beneficial results:
 
 \begin{itemize}
 	\item Linked list functions can't fail due to memory constraints any more, simplifying logic that uses them
-	\item Less allocations are performed, as only one allocation is performed per node rather than two
+	\item One less \malloc{} and \free{} per linked list operation
 \end{itemize}
 
-According to Stenberg in his blog post, these changes led to a modest reduction in the number of allocations in a simple benchmark (from 115 allocations to 80, or a 26\% reduction)~\cite{curlmalloc}. Stenberg notes that these changes are effectively free, and improve the code quality.
+According to Stenberg in his blog post, these changes led to a modest reduction in the number of allocations in a simple benchmark (from 115 allocations to 80, or a 26\% reduction)~\cite{curlmalloc}. He also notes that these changes are effectively free and improve the code quality.
 
 \subsection{Polling Function Changes}
 
 The polling function in question is \functionname{curl\_multi\_wait}. The function takes as input a list of file descriptors\footnote{A file descriptor is part of the POSIX API, providing a uniform interface to similar but distinct interfaces such as files, hardware devices, network sockets and so on. \toolname{cURL} further abstracts the concept for added portability. The specifics are not important here.}, polls each one and returns with an error code (indicating whether the descriptors were polled successfully or if there was some issue).\\
-For the purposes of polling, \toolname{cURL}'s internal abstraction is accepted alongside regular file descriptors. The file descriptors are all copied to a block of memory, allocated with a plain \malloc{}, to make polling from the two distinct sources simpler.
+For the purposes of polling, \toolname{cURL}'s internal abstraction is accepted alongside regular file descriptors. These are all copied to a dynamically allocated block of memory to make polling from the two distinct sources simpler.
 
-The expectation is that \functionname{curl\_multi\_wait} will be used in conjunction with other functions for bulk operations on sets of file descriptors in a polling loop. Due to internal constraints on timeouts, this means that \functionname{curl\_multi\_wait} could be called as often as 1000 times per second, each time potentially calling \malloc{}. Removing this \malloc{} should lead to a significant reduction in the number of allocations made.
+The expectation is that \functionname{curl\_multi\_wait} will be used in conjunction with other functions for bulk operations on sets of file descriptors in a polling loop. Due to internal constraints on timeouts, this means that \functionname{curl\_multi\_wait} could be called as often as 1000 times per second, each time potentially calling \malloc{} to produce the block of memory. Removing this \malloc{} should lead to a significant reduction in the number of allocations performed overall.
 
 The change made here was simple, and the one of interest for this project. In the common case (as claimed by Stenberg without mentioning how its commonness was determined), \functionname{curl\_multi\_wait} was changed to avoid the \malloc{}, instead using a stack allocated block of memory when few file descriptors were passed to it.\\
-Stenberg claims that in a simple benchmark this change resulted in a 99.62\% decrease (33,961 to 129) in the number of \malloc{} allocations.
+Stenberg claims that in a simple benchmark this change resulted in a 99.62\% decrease (33,961 to 129) in the number of \malloc{} calls.
 
 \subsection{Results of the Changes}
 
@@ -38,7 +43,7 @@ However, this comparison attributes all performance and allocation differences t
 
 \section{Objectives of this Project}
 
-The project has two main objectives.
+The project has two main objectives, in which \textit{patch} refers to applying changes which replace dynamic allocation with stack or static allocation.
 
 \begin{enumerate}
 	\item Produce a tool that can detect sites where there is potential to perform the patch
@@ -47,21 +52,22 @@ The project has two main objectives.
 
 \subsection{Tool to Detect Potential Patch Sites}
 
-The general pattern of sites where this patch can be applied appears something like the code listing below
+The general pattern of sites where a patch can be applied appears similar to the code listing below
 
 \lstinputlisting[style=CStyle,label=patternsample]{samples/pattern.c}
 
 where the \malloc{} and \free{} on lines 2 and 4 could instead be replaced with stack allocation\footnote{The details of how stack allocation would be achieved in this situation is explored further later, the details are unimportant at this point}, avoiding both of those calls and indeed completely avoiding any risk of a memory leak\footnote{A memory leak refers to a dynamic allocation (using the \malloc{} family or similar) which is never \free{}d and so consumes memory until the program exits, even if it's no longer being used}.
 
-The concept is simple: some amount of memory is allocated, used for a short amount of time, then \free{}d. In a small example, the pattern is obvious and easy to detect, or even to not introduce in the first place. However, as seen in the real world \toolname{cURL} example, these patterns are introduced, either by mistake or for simplicity.
+The concept is simple: some amount of memory is allocated, used for a short amount of time, then \free{}d. In a small example, the pattern is obvious and easy to detect, or even to not introduce in the first place. However, as seen in the real world \toolname{cURL} example, these patterns are introduced, either by mistake or for simplicity (relative to more complex code required for safe stack allocation).
 
-There are also further considerations to be taken before replacing a heap allocation with a stack allocation, and even more considerations if it's to be replaced with static allocation. A non-comprehensive list follows, where some items result in undefined behaviour\footnote{Undefined behaviour in C is the result of any operation which has no defined semantics, and its outcome may vary from implementation to implementation or even run to run. To the compiler, it is equivalent to $\bot$, and so it may generate any code if it can detect UB} (UB)
+There are also further considerations to be taken before replacing a heap allocation with a stack allocation, and even more considerations if it's to be replaced with static allocation. A non-comprehensive list follows, where some items result in undefined behaviour\footnote{Undefined behaviour in C is the result of any operation which has no defined semantics, and its outcome may vary from implementation to implementation or even run to run. To the compiler, UB is equivalent to $\bot$, and so it may generate any code if it can detect UB} (UB)
 
 \begin{itemize}
+	\itemsep-0.25em
 	\item Stack overflow can be caused by stack allocation of a large amount of data, resulting in UB
-	\item A pointer to the data escaping its scope would result in a dangling pointer, resulting in UB
-	\item The variable may be assigned at various different points, complicating stack allocation (depending on the method used)
-	\item If static allocation is used, it must be guaranteed that the function can only be executed in one site at a time to avoid multiple sites overwriting each other's data
+	\item A pointer to the data escaping its scope would result in a dangling pointer, whose dereferencing results in UB
+	\item The variable may be assigned to at various different points, complicating stack allocation (depending on the method used)
+	\item If static allocation is used, it must be guaranteed that the function can only be executed in one site at a time to avoid multiple sites overwriting each other's data, and the function will not be reentrant\footnote{Reentrancy is a property of a function that may be entered while a previous invocation is still executing without affecting the correctness of either execution, and is a required property of a recursive function}
 \end{itemize}
 
 The tool should take as many of these cases into consideration as possible, to avoid suggesting applying the patch at sites where it would cause errors.
@@ -72,6 +78,6 @@ Development of the tool is discussed in depth in Chapter~\ref{implementation}.
 
 First, the maximum expected performance impact should be found, to set an expectation of what the best case result would be. To that end, two bespoke benchmarks were written: one to attempt to trigger certain slow behaviours in the allocator that can then be avoided by stack allocating instead; another to simulate a simple but realistic benchmark to test the results of the patch in isolation.
 
-Next, in order to determine the performance change in a real world situation, the \toolname{cURL} patch itself was tested in complete isolation from the other commits to determine how much of the performance difference was a result of the allocation changes.
+Next, in order to determine the performance change in a real world situation, the \toolname{cURL} changes were tested in complete isolation from other commits to determine how much of the performance difference was a result of the allocation changes.
 
 The benchmarks are discussed in depth in Chapter~\ref{studies}.
