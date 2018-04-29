@@ -5,16 +5,16 @@ Despite the often misattributed epigraph above often being used to mock past bel
 With the broad availability of large amounts of computational power, memory and storage, conservation or efficient use of the same is often overlooked in programming. This is largely perpetuated by the (often valid) view that programmer time is more valuable than the benefits that more efficient but more complex code brings.
 
 There are cases where such benefits remain essential, such as in code intended to be deployed in embedded or mobile devices, where resources are limited and preservation of power is paramount. It can also provide benefits to real-time systems in which the potential delay caused by a worst-case allocation is unacceptable. An added benefit presents itself in the case of a ubiquitous library, where even a small improvement can lead to large energy savings on the aggregate once the large number of users are accounted for.\\
-A blog post~\cite{curlmalloc} by Daniel Stenberg, original author of the \toolname{curl} command line tool and ubiquitous URL data transfer tool, is a retrospective on an attempt to reduce unnecessary heap allocations.
+A blog post~\cite{curlmalloc} by Daniel Stenberg, original author of the \toolname{cURL} command line tool and ubiquitous URL data transfer library, is a retrospective review of an attempt to reduce unnecessary heap allocations in core functionality.
 
-Inspired by that post, the aim of this project is to produce a tool to identify cases where similar changes could be made in order to potentially reduce a program's energy and processing power footprint, and at the same time improve its performance.
+Inspired by that post, the aims of this project are: to produce a tool to identify cases where similar changes could be made; and to establish what performance gains and energy savings, if any, can be had as a result of effecting those changes.
 
 \section{Report Structure}
 
 The report is structured as follows:
 
 \begin{itemize}
-	\item{Chapter~\ref{background} provides background on the project, including further information on the changes to \toolname{cURL} that inspired this project, as well as laying out the objectives of the project}
+	\item{Chapter~\ref{background} provides background on the project, including further information on the changes to \toolname{cURL} that inspired this project, as well as further laying out the objectives of the project}
 	\item{Chapter~\ref{implementation} describes the goals of the plug-in developed, the platform it built upon, difficulties encountered in development, and the final state of the plug-in}
 	\item{Chapter~\ref{studies} covers three case studies, two written intentionally to trigger certain behaviours to maximise the optimisation's effect, and one which simply involves isolating Stenberg's changes and testing their impact}
 	\item{Chapter~\ref{conclusion} examines the results and outcomes of the case studies and state of the plug-in}
