@@ -28,7 +28,7 @@ The most immediate issue with the \functionname{stack} method as implemented is 
 
 The unconditional allocation also means that the risk of stack overflow, and hence a segmentation fault, is even greater than in the \functionname{dynamic} case, due to use of \functionname{alloca} even if the allocation to be performed is very large.
 
-Another issue with \functionname{alloca} is that it has no way to indicate if the stack frame cannot be extended. Unlike \malloc{}, it never returns \varname{NULL}. This means that is no way to tell if an allocation was successful until the buffer is used, causing a stack overflow and segmentation fault.
+Another issue with \functionname{alloca} is that it has no way to indicate if the stack frame cannot be extended. Unlike \malloc{}, it never returns \varname{NULL}. This means that there is no way to tell if an allocation was successful until the buffer is used, causing a stack overflow and segmentation fault.
 
 \subsubsection{Handling The Downsides}
 
@@ -36,7 +36,7 @@ A better solution than the \functionname{dynamic} or \functionname{stack} alloca
 
 Rather than performing a check on the input size and using a statically declared buffer on the stack, the stack allocation itself can be performed with \functionname{alloca} (or, under the C99 standard, a variable length array could be used with portability benefits). This would prevent bloating the stack unnecessarily, allowing only the buffers that will actually get used to be stack allocated.
 
-To handle the increased risk of a segmentation fault, a signal handler could be written capturing the \texttt{SIGSEGV} signal raised. However, signal handlers are extremely restricted in what they can do, which functions they can call, and even which variables they can write to~\cite{signalhandling}. The increase is complexity resulting from needing to write and maintain this signal handler, if a signal handler can even be written to sufficiently generically resolve stack overflow errors\footnote{A trivial, but not necessarily useful, handler simply expands the stack when a stack overflow is detected, but this is unlikely to be possible to do for any extended amount of time, and only works in an environment can be extended at runtime using only functions permissible in signal handlers. This also requires the handler to be able to distinguish between a signal raised due to a stack overflow or due to another reason, such as a \varname{NULL} dereference.}, is unlikely to be justified by any performance benefits gained.
+To handle the increased risk of a segmentation fault, a signal handler could be written capturing the \texttt{SIGSEGV} signal raised. However, signal handlers are extremely restricted in what they can do, which functions they can call, and even which variables they can write to~\cite{signalhandling}. The increase in complexity resulting from needing to write and maintain this signal handler, if a signal handler can even be written to sufficiently generically resolve stack overflow errors\footnote{A trivial, but not necessarily useful, handler simply expands the stack when a stack overflow is detected, but this is unlikely to be possible to do for any extended amount of time, and only works in an environment in which the stack can be extended at runtime using only functions permissible in signal handlers. This also requires the handler to be able to distinguish between a signal raised due to a stack overflow or due to another reason, such as a \varname{NULL} dereference.}, is unlikely to be justified by any performance benefits gained.
 
 \subsection{Real World Benchmark}
 
@@ -49,11 +49,11 @@ This observation was noted in Proebsting's~Law, in which Proebsting claimed the 
 	These assumptions lead to the conclusion that compiler optimization advances double computing power every 18 years. […] compiler optimizations contribute only 4\% [per year]. Basically, compiler optimization work makes only marginal contributions.~\cite{proebstingdecl}
 \end{quote}
 
-These findings were formalised 3 years later by Scott, in which the rate of improvement was estimated to be closer to 2.8–3.6\% per year, or even as high as 4.9\%, depending on what year was taken as the starting point in which compiler optimisations begun to be developed~\cite{proebstingformal}. Scott also notes that there's no reason to give up on compiler optimisations, as any performance benefit is better than none, and in particular there's no reason to turn down existing performance benefits.
+These claims were formalised 3 years later by Scott, who found the rate of improvement to be closer to 2.8–3.6\% per year, or even as high as 4.9\%, depending on what year was taken as the starting point in which compiler optimisations begun to be developed~\cite{proebstingformal}. Scott also notes that there's no reason to give up on compiler optimisations, as any performance benefit is better than none, and in particular there's no reason to turn down existing performance benefits.
 
 \section{State of the Plug-in}
 
-The current state of the \toolname{Forgetful} plug-in is described in Section~\ref{pluginstate}, where the instances of the pattern it can detect are shown and some of its limitations discussed. Some of these limitations are outside of the control of the plug-in, such as the inability to process functions which use recursion, which is imposed by \toolname{EVA}. Other limitations, such as only performing intra-procedural analysis, or the simplified handling of intervals, are internal limitations.
+The current state of the \toolname{Forgetful} plug-in is described in Section~\ref{pluginstate}, where the instances of the pattern it can detect are shown and some of its limitations discussed. Some of these limitations are outside of the control of the plug-in, such as the inability to process functions which use recursion, which is imposed by \toolname{EVA}, and so are not discussed further here. Other limitations, such as only performing intra-procedural analysis, or the simplified handling of intervals, are internal limitations.
 
 \subsection{Interval Handling}
 
