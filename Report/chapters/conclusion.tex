@@ -1,4 +1,4 @@
-This chapter will discuss the results in the proper context to determine whether they show merit as a worthwhile optimisation, and also discuss the state of the plug-in in further detail, in particular discussing its limitations.
+This chapter will discuss the results in the proper context to determine whether the patch shows merit as a worthwhile optimisation, and will also discuss the state of the plug-in in further detail, in particular discussing its limitations.
 
 \section{Results}
 
@@ -18,7 +18,7 @@ Both the \functionname{dynamic} and \functionname{stack} allocation methods as i
 
 The stack frame is bloated with the buffer even when it's not being used, as space must always be allocated for it even if it's determined at run-time that the buffer can't be used.
 
-Depending on where the buffer is declared, whether multiple buffers are declared (if there are multiple inputs that can be copied to stack allocated buffers), and how large the buffers are, locality of the stack could potentially be affected.
+Depending on where the buffer is declared, whether multiple buffers are declared (if there are multiple inputs that can be copied to stack allocated buffers), and how large the buffers are, locality of the stack could potentially be affected, though this is unlikely.
 
 The larger stack frames required also increase the likelihood of stack overflow occurring, which will generally result in a segmentation fault due to the invalid access to storage (outside the bounds of the stack)~\cite{c11std}.
 
@@ -28,7 +28,7 @@ The most immediate issue with the \functionname{stack} method as implemented is 
 
 The unconditional allocation also means that the risk of stack overflow, and hence a segmentation fault, is even greater than in the \functionname{dynamic} case, due to use of \functionname{alloca} even if the allocation to be performed is very large.
 
-Another issue with \functionname{alloca} is that it has no way to indicate if the stack frame cannot be extended. Unlike \malloc{}, it never returns \varname{NULL}. This means that there is no way to tell if an allocation was successful until the buffer is used, causing a stack overflow and segmentation fault.
+Another issue with \functionname{alloca} is that it has no way to indicate if the stack frame cannot be extended. Unlike \malloc{}, it never returns \varname{NULL}. This means that there is no way to tell if an allocation failed until the buffer is used, causing a stack overflow and segmentation fault.
 
 \subsubsection{Handling The Downsides}
 
@@ -40,7 +40,7 @@ To handle the increased risk of a segmentation fault, a signal handler could be 
 
 \subsection{Real World Benchmark}
 
-The real world benchmark had disappointing results when compared to the specialised benchmarks, and even to Stenberg's original claims. Results were found to be indistinguishable from variance in the test environment itself, in sharp contrast with the 30\% performance increase claimed~\cite{curlmalloc}.
+The real world benchmark had disappointing results when compared to the specialised benchmarks, and even moreso to Stenberg's original claims. Results were found to be indistinguishable from variance in the test environment itself, in sharp contrast with the 30\% performance increase claimed~\cite{curlmalloc}.
 
 Despite these results, this doesn't mean that the patch is not worth applying, or at least researching further. Compiler optimisations are known to produce minimal performance benefits individually, instead building up mutually to more significant gains over time and in conjunction with each other.\\
 This observation was noted in Proebsting's~Law, in which Proebsting claimed the following, with the figure of doubling every 18 years chosen to match the more well-known Moore's~Law.
@@ -91,3 +91,5 @@ This means that when the allocation is reported, it reports the contents of line
 \lstinputlisting[breaklines=true]{samples/transformed_output.txt}
 
 The formatting of this output raises another issue that could be revisited, which is that the output is not easily machine parsable. This could make it less useful in automated pipelines using the tool to detect issues in pull requests, for example.
+
+Lastly, the output does not present any of the size information used to determine whether to report on an allocation, which could be valuable information for the user.
