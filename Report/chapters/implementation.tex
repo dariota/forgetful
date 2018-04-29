@@ -1,7 +1,7 @@
-Two initial approaches to create the tool were considered: hooking directly into the compiler to detect the pattern and automatically patch it (when enabled, and when the pattern is detected with sufficiently high confidence); or creating a plug-in for an existing static analysis platform which could be manually run on existing codebases to detect the pattern.
+Two initial approaches to create the tool were considered: hooking directly into the compiler to detect the pattern and automatically patch it (when enabled, and when the pattern is detected with sufficiently high confidence); or to create a plug-in extending the functionality of an existing static analysis platform to enable it to detect the pattern.
 
-The time needed to become familiarised with the extensive and complex codebase of a production compiler (which may not even provide sophisticated value analysis) would lead to a highly reduced chance that the project would be complete within the time allowed. \\
-Therefeore the final decision was, largely for reasons of pragmatism and convenience, to follow the second approach and create the Forgetful plugin.
+The time needed to become familiarised with the extensive and complex codebase of a production compiler (which may not even provide sufficiently sophisticated value analysis) would lead to a highly reduced chance that the project would be complete within the time allowed. \\
+Therefore the final decision was, largely for reasons of pragmatism and convenience, to take the second approach and create the \toolname{Forgetful} plug-in.
 
 \section{Goals of the Plug-in}
 
@@ -12,6 +12,7 @@ There were a small set of goals for the plug-in to achieve, both functional and 
 The non-functional goals are as follows:
 
 \begin{itemize}
+	\itemsep-0.25em
 	\item There should be little to no modification of any existing code required to use the plug-in to a satisfactory degree
 	\item There should be a minimal number of false positives wherein the plug-in suggests a site at which the patch cannot be applied
 	\item Interaction with the plug-in should match the normal mode of interaction for the platform it builds on
@@ -24,17 +25,18 @@ These goals should ensure that the barrier to entry to using the plug-in is as l
 The functional goals are as follows:
 
 \begin{itemize}
+	\itemsep-0.25em
 	\item When a site where the patch can be applied is found, the user should be notified
 	\item Where possible, a diff patch\footnote{A diff patch is an encoding of a set of changes that can be automatically applied with a standard tool to a file to effect a change} should be produced to apply the patch easily
 \end{itemize}
 
 On the first point, the user clearly needs to be notified, as there's no point to detecting an issue and not communicating it to the user. The exact form of the notification isn't important, but should provide as much information as possible without overwhelming the user, allowing them to make a informed decision about what action to take.
 
-The diff patch is more complicated, but would be extremely useful. If the plug-in could guarantee that a certain site could be patched safely before producing a diff patch, it could be added into a pre-compilation step to rewrite the pattern silently. This would allow the source code that users work on to remain simple and as they wrote it while gaining any performance benefit from the patch.
+The diff patch is more complicated, but would be extremely useful. If the plug-in could guarantee that a certain site could be patched safely before producing a diff patch, it could be added into a pre-compilation step to rewrite the pattern silently. This would allow the source code that users work on to remain simple and as they wrote it while also gaining any performance benefit from the patch.
 
 \section{Static Analysis Platform}
 
-There are a number of static analysis tools built for C over the years, of which a small number were chosen based on apparent state of maintenance and popularity (as a proxy for likelihood to be well supported and modern). The short-list from which the eventual target platform was chosen consisted of \toolname{clang-analyzer}~\cite{clang-analyzer}, \toolname{Frama-C}~\cite{frama}, and \toolname{Infer}~\cite{fbinfer}.
+There are a number of static analysis tools built for C over the years, from which a small number were chosen based on apparent state of maintenance and popularity (as a proxy for likelihood to be well supported and modern). The short-list that the target platform, \toolname{Frama-C}, was chosen from consisted of \toolname{clang-analyzer}~\cite{clang-analyzer}, \toolname{Frama-C}~\cite{frama}, and \toolname{Infer}~\cite{fbinfer}.
 
 \toolname{clang-analyzer} is written in C++, matching the \toolname{clang} codebase it originates from and resides in. \toolname{Frama-C} and \toolname{Infer} are both written in OCaml, though while \toolname{Frama-C} builds up its own AST\footnote{An Abstract Syntax Tree (AST) is a tree-based representation of a program, with each node representing a construct appearing in the source code}, \toolname{Infer} hooks into \toolname{clang-analyzer}.
 
@@ -52,7 +54,7 @@ However, and of more interest to the project, it also has a plug-in architecture
 
 \lstinputlisting[style=CStyle]{samples/contrived.c}
 
-This is normalised into something like the following by \toolname{Frama-C}
+This is normalised into the following by \toolname{Frama-C}
 
 \lstinputlisting[style=CStyle]{samples/normalised.c}
 
@@ -64,17 +66,17 @@ The root of the AST is a representation of the file being processed, which conta
 
 Within a function node we're interested in its statement list, which contains statements of various kinds, such as a plain instruction with no control flow, which can include a variable declaration and assignment, or a reassignment of an existing variable. These are the exact subsets of statements in which a \malloc{} can occur after normalisation of the AST, including the unusual case of a \malloc{} that's not assigned to anything.
 
-\toolname{Frama-C} alone doesn't provide any sort of value or escape analysis, instead leaving this to be provided by plug-ins. The primary plug-in providing these features is called \toolname{Evolved Value Analysis} (\toolname{EVA}). Note that this distinction is largely symbolic, as \toolname{EVA} is statically connected to the \toolname{Frama-C} kernel, unlike regular plug-ins.
+\toolname{Frama-C} alone doesn't provide any sort of value or escape analysis, instead leaving this to be provided by plug-ins. The primary plug-in providing these features is called \toolname{Evolved Value Analysis} (\toolname{EVA}). Note that this distinction is largely symbolic, as \toolname{EVA} is so core to the platform functionality that it is statically connected to the \toolname{Frama-C} kernel, unlike most plug-ins.
 
-\subsection{The \toolname{Evolved Value Analysis} Plug-in} \label{EVA}
+\subsection{The \toolname{Evolved Value Analysis} Plug-in}\label{EVA}
 
-\toolname{EVA} provides, at any given point in the AST, a set or interval describing values possible at a given point. Values can be requested for expressions or variables with respect to a given statement, and they can be evaluated either before or after execution of that statement. \toolname{EVA} also performs semantic constant folding, allowing it to be used even on code including loops~\cite{framaeva}. This will be needed in order to track allocations throughout the program.
+\toolname{EVA} provides, at any given point in the AST, a set or interval describing values possible for a given expression or variable. Values are requested with respect to a given statement, and they can be evaluated either before or after execution of that statement. \toolname{EVA} also performs semantic constant folding, allowing it to be used even on code including loops~\cite{framaeva}. This will be needed in order to track allocations throughout the program.
 
-Values can be described as a discrete set of values, as an interval, or as an interval skipping regular values. When \toolname{EVA} determines that one of the representations is becoming too large, it can degenerate the value to a broader description that contains all of the original values. As an example, take the following:
+Values can be described as a discrete set of values, as an interval, or as an interval skipping regular values. When \toolname{EVA} determines that one of the representations is becoming too large, it can degenerate the value to a broader description that contains all of the original values. As an example, take the code listing below:
 
 \lstinputlisting[style=CStyle,firstline=21,lastline=38]{samples/eva.c}
 
-Assuming that the level of semantic constant folding \toolname{Frama-C} is permitted to do is high enough to fully evaluate the loop and that \varname{NUM\_PRIMES} is set to 8, \toolname{EVA} produces the values in Table~\ref{fullEval} after the loop.
+Assuming that the level of semantic constant folding \toolname{EVA} is permitted to do is high enough to fully evaluate the loop and that \varname{NUM\_PRIMES} is set to 8, \toolname{EVA} produces the values in Table~\ref{fullEval} after the loop.
 
 \begin{table}
 	\centering
@@ -90,7 +92,7 @@ Assuming that the level of semantic constant folding \toolname{Frama-C} is permi
 		\varname{randPrime} & \{2; 3; 5; 7; 11; 13; 17; 19\} & & \\
 		\bottomrule
 	\end{tabular}
-	\caption{Values provided by EVA with \varname{NUM\_PRIMES} set to 8 and sufficient semantic constant folding to fully evaluate the loop}\label{fullEval}
+	\caption{Values provided by \toolname{EVA} with \varname{NUM\_PRIMES} set to 8 and sufficient semantic constant folding to fully evaluate the loop}\label{fullEval}
 \end{table}
 
 In particular, note that:
@@ -105,9 +107,9 @@ In particular, note that:
 
 Next, we consider the values reported if the semantic constant folding allowed is set too low to evaluate anything past the first prime, and so the values are now reported as shown in Table~\ref{partialEval}.
 
-\begin{table}[h]
+\begin{table}[ht]
 	\centering
-	\begin{tabularx}{\linewidth}{>{\hsize=1.1\hsize}X >{\hsize=1.3\hsize}X | >{\hsize=0.6\hsize}X >{\hsize=1\hsize}X}
+	\begin{tabularx}{\linewidth}{>{\hsize=1.2\hsize}X >{\hsize=1.1\hsize}X | >{\hsize=0.7\hsize}X >{\hsize=1\hsize}X}
 		\toprule
 		\textbf{Variable} & \textbf{Values} & \textbf{Variable} & \textbf{Values} \\
 		\midrule
@@ -116,16 +118,16 @@ Next, we consider the values reported if the semantic constant folding allowed i
 		\varname{randPrime} & [2..2147483647] & & \\
 		\bottomrule
 	\end{tabularx}
-	\caption{Values provided by EVA with \varname{NUM\_PRIMES} set to 8 and insufficient semantic constant folding to fully evaluate the loop}\label{partialEval}
+	\caption{Values provided by \toolname{EVA} with \varname{NUM\_PRIMES} set to 8 and insufficient semantic constant folding to fully evaluate the loop}\label{partialEval}
 \end{table}
 
-This time we note that EVA can no longer determine whether the loop ever terminates and cannot determine the values for all indices of the \varname{morePrimes} array, nor if they're ever initialised (due to the possibility of integer overflow in \varname{current} without index being incremented sufficient times to exit the loop). As expected, \varname{randPrime}'s possible values also cannot be determined, as it depends on full evaluation of all values in \varname{morePrimes}. However, the other variables do not depend on the loop, so they can be correctly evaluated regardless.
+This time we note that \toolname{EVA} can no longer determine whether the loop ever terminates and cannot determine the values for all indices of the \varname{morePrimes} array, nor if they're ever initialised (due to the possibility of integer overflow in \varname{current} without \varname{index} being incremented sufficient times to exit the loop). As expected, \varname{randPrime}'s possible values also cannot be determined, as it depends on full evaluation of all values in \varname{morePrimes}. However, the other variables do not depend on the loop, so they can be correctly evaluated regardless.
 
-Next, increasing \varname{NUM\_PRIMES} to 9 causes \toolname{EVA} to decide \varname{randPrime} has too many values, so it reduces its precision from the values shown in Table~\ref{fullEval} to [2..23] which still contains all the correct values with as much precision as possible without storing the individual values.
+Next, increasing \varname{NUM\_PRIMES} to 9 causes \toolname{EVA} to decide that \varname{randPrime} has too many possible values, so it reduces its precision from the values shown in Table~\ref{fullEval} to [2..23] which still contains all the correct values with as much precision as possible without storing the individual values.
 
 Additionally, changing line 12 so that \varname{randPrime} is assigned \varname{current * 4} causes \toolname{EVA} to degenerate its precision again to [2..76]0\%2, which is the most complicated value type \toolname{EVA} can produce, and indicates that values start at 2 with an offset of 0 and every second value is potentially valid. This includes all the valid values (\{8; 12; 20; 28; 44; 52; 68; 76\}), but is less precise than an alternative interval of [8..76]0\%4. It's not clear why \toolname{EVA} choose one instead of the other.
 
-While this covers all simple values such as integers, floats, and even structs (which function similar to an array, where each member is separately displayed), it doesn't cover pointers. There are two kinds of pointer which are represented identically. The first is a pointer to an existing variable such as \varname{\&randPrime}, while the second is a pointer created by a call to a function like \malloc{}. Both types are represented as \varname{\{\{ \&varname \}\}}, where \varname{varname} is either the name of the variable pointed to, or something of the form \varname{\{\{\&\_\_malloc\_main\_l33 \}\}} in the case of \malloc{}, where a unique variable name is generated, representing a point in heap memory which \toolname{EVA} calls a Base.
+While this covers all simple values such as integers, floats, and even structs (which function similar to an array, where each member is separately displayed), it doesn't cover pointers. There are two kinds of pointer which are represented identically. The first is a pointer to an existing variable such as \varname{\&randPrime}, while the second is a pointer created by a call to a function like \malloc{}. Both types are represented as \varname{\{\{ \&varname \}\}}, where \varname{varname} is either the name of the variable pointed to, or something of the form \varname{\{\{\&\_\_malloc\_main\_l33 \}\}} in the case of \malloc{}, where a unique variable name is generated, representing a point in heap memory which \toolname{EVA} calls a base.
 
 Bases can be collected in sets, same as regular values, but cannot form an interval. There is also a special pointer, \varname{NULL}, representing exactly that and marked as a potential return value by \toolname{Frama-C}'s internal version of \malloc{}, although that can be disabled by one of \toolname{EVA}'s options~\cite{framamalloc}. Clearly, bases are of particular interest for the project.
 
@@ -153,7 +155,7 @@ Trial and error was also the method used to determine which nodes \malloc{} and 
 
 \subsection{Allocation Tracking}\label{alloctrack}
 
-Allocation tracking is performed only within any given function so as to ensure any allocations whose free site is found are short-lived, and specifically inter-procedural. This is non-essential, but is the easiest case of the pattern to replace with stack allocation.
+Allocation tracking is performed only within any given function so as to ensure any allocations whose free site is found are short-lived, and specifically intra-procedural. Being intra-procedural is non-essential, but is the easiest case of the pattern to replace with stack allocation.
 
 To actually track allocations, a hashtable mapping a base's unique ID to the site where it was allocated is created. Each time a new function is visited, the hashtable is cleared to prevent previously seen allocations in different functions from being erroneously reported when they're \free{}d elsewhere.\\
 The unique base ID is provided by \toolname{Frama-C}, and doesn't change throughout the analysis, making it ideal to look up bases when they are \free{}d to determine if they're short-lived.
@@ -165,16 +167,16 @@ For example, in the code listing in Section~\ref{patternsample}, the following i
 
 On a \free{}, \toolname{EVA} is used to determine what bases it could be freeing, and from there its ID is used to determine if the base identifies a small allocation and where it was allocated using the aforementioned hashtable.
 
-Of course, not all allocations have a size that can be statically determined, with many instead having an interval as described in Section~\ref{EVA}. In order to simplify application of the patch in cases where the allocation size is an interval, these are only reported if the maximum value of the interval is less than or equal to the configured maximum size to report. This decision results in the plug-in being unable to detect the case described by Stenberg in \toolname{cURL}~\cite{curlmalloc}, as the allocation was not always below the size chosen for stack allocation.\\
+Of course, not all allocations have a single size that can be statically determined, with many instead having an interval as described in Section~\ref{EVA}. In order to simplify application of the patch in cases where the allocation size is an interval, these are only reported if the maximum value of the interval is less than or equal to the configured maximum size to report. This decision results in the plug-in being unable to detect the case described by Stenberg in \toolname{cURL}~\cite{curlmalloc}, as the allocation was not always below the size chosen for stack allocation.\\
 Different behaviour for intervals could be added, to allow for cases where stack allocation or heap allocation are decided between at run-time. This would allow the plug-in to detect the case mentioned above.
 
-It's also worth noting that bases are independent of the variable names they're allocated to. Take the following section, where \varname{TOO\_LARGE} and \varname{SMALL\_ENOUGH} are appropriately defined so as to ensure Forgetful doesn't and does report the allocations respectively.
+Note that bases are independent of the variable names they're allocated to. Consider the following section, in which \varname{TOO\_LARGE} and \varname{SMALL\_ENOUGH} are defined, respectively, to be greater than the maximum size and smaller than the maximum size at which \toolname{Forgetful} will report an allocation.
 
 \lstinputlisting[style=CStyle]{samples/allocbranching.c}
 
-Forgetful will report the allocation on line 3 even though \varname{val} can also be too large to report. This is because \varname{val}'s value is found by \toolname{EVA} to be a set of bases (from lines 1 and 3) where one is too large to report and the other is small enough, rather than describing it as a single base with a range which extends enough as to be too large.
+\toolname{Forgetful} will report the allocation on line 3 even though \varname{val} can also be too large to report. This is because \varname{val}'s value is found by \toolname{EVA} to be a set of bases (from lines 1 and 3) where one is too large to report and the other is small enough, rather than describing it as a single base with a range of possible sizes which extends enough as to be too large to report.
 
-This differs from the following example, in which there is only one base which has an interval too large to report as its size.
+This differs from the following example, in which there is only one base whose size falls in an interval too large to report.
 
 \lstinputlisting[style=CStyle]{samples/valbranching.c}
 
@@ -184,13 +186,13 @@ A number of difficulties were encountered throughout the project, described belo
 
 \subsubsection{Build and Installation}
 
-An initial and unexpected difficulty was the installation of \toolname{Frama-C} itself. A bug in one of its dependencies resulted in it being unable to compile, which made it impossible to install from source with no binaries available. A few patches (which all had to be applied together) for the issue were found online, not yet applied to the dependency despite having been available and known to the maintainer for a few months. To enable \toolname{Frama-C} to be built, the patches were applied during the build process.
+An initial and unexpected difficulty was the installation of \toolname{Frama-C} itself. A bug in one of its dependencies resulted in it being unable to compile, which made it impossible to install from source, made worse by the unavailability of binaries. A few patches (which all had to be applied together) for the issue were found online, not yet applied to the dependency despite having been available and known to the maintainer for a few months. To enable \toolname{Frama-C} to be built, the patches were applied during the build process.
 
 This is more complicated than it sounds, as the build process downloaded new sources which needed to be patched as well, requiring a total of 3 or 4 patches which must be applied only once to any given file and before the next part of the build process started using those files. A script was eventually written to patch files on the fly once they were created, and run alongside the build process.
 
 \subsubsection{OCaml and \toolname{Frama-C} Learning Curve}
 
-As expected, there was a significant learning curve involved in learning both a new language, OCaml, and a new platform, \toolname{Frama-C}. As OCaml's has similarities to languages such as Java and Haskell, some of this learning curve was mitigated due to familiarity with those languages. Having no prior experience developing part of or even using a static analysis tool, \toolname{Frama-C} was still difficult but manageable to broach due to both the user manual~\cite{framauser} and the plug-in development guide~\cite{framaplug}.
+As expected, there was a significant learning curve involved in learning both a new language, OCaml, and a new platform, \toolname{Frama-C}. As OCaml has similarities to languages such as Java and Haskell, some of this learning curve was mitigated by familiarity with those languages. Having no prior experience developing part of or even using a static analysis tool, \toolname{Frama-C} was still difficult but manageable to broach due to both the user manual~\cite{framauser} and the plug-in development guide~\cite{framaplug}.
 
 \subsubsection{Kernel and Core Plug-in Documentation}
 
@@ -198,11 +200,11 @@ Despite \toolname{Frama-C}'s lengthy guides for both users and plug-in developer
 
 One case in which the API documentation proved insufficient was in its description of bases. In particular, functions are provided that allow translation from a base to variable info, which initially seemed to provide a simple way to perform most of the analysis. A base could simply be retrieved at the \free{} site, and have variable info retrieved from it to determine its allocation site and size. However, while variable info should include its allocation site, the variable info produced from a base doesn't include valid location data. This is why allocations have to be tracked forwards from the \malloc{} instead.
 
-\toolname{EVA}'s documentation was the most lacking, with the majority of its manual being dedicated to users interacting with \toolname{EVA} through ACSL or the \toolname{Frama-C} GUI\@. In the entire manual, there is only one mention of an \toolname{EVA} API, which is the \functionname{value} function. However, the \functionname{value} function only returns the value before a statement has been executed and the Forgetful plug-in needs access to the result after a \malloc{} call. A solution was eventually found online~\cite{foldstate}, but searching for one led to significant delays.
+\toolname{EVA}'s documentation was the most lacking, with the majority of its manual being dedicated to users interacting with \toolname{EVA} through ACSL or the \toolname{Frama-C} GUI\@. In the entire manual, there is only one mention of an \toolname{EVA} API, which is the \functionname{value} function. However, the \functionname{value} function only returns the value before a statement has been executed and the \toolname{Forgetful} plug-in needs access to the result after a \malloc{} call. A solution was eventually found online~\cite{foldstate}, but searching for one led to significant delays.
 
 \section{Final State of the Plug-in}\label{pluginstate}
 
-The state of the Forgetful plugin is most easily communicated by examining results from running the analysis on various code samples.
+The state of the \toolname{Forgetful} plug-in is most easily communicated by examining results from running the analysis on various code samples.
 
 \lstinputlisting[style=CStyle]{samples/recurse.c}
 
