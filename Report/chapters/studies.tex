@@ -4,7 +4,7 @@ For the code used in the benchmarks, refer to Appendix~\ref{codeappend}.
 
 \section{Specialised Benchmark, Sorting}
 
-The first benchmark involves minimal allocations and a large amount of busy work.
+The first case study involves minimal allocations and a large amount of busy work.
 
 The benchmark setup code creates input data of an array of structs containing a random value and a sequential ID (which isn't used). It then calls each of the four benchmarking functions described below a large number of times (10,000 to 20,000 times) in a row each, timing how long each execution takes in total.
 
@@ -30,7 +30,7 @@ Another caveat to the use of \functionname{alloca} is that while it appears to b
 
 \subsection{Program Reasoning}
 
-This benchmark was chosen to provide a sort of floor for performance changes due to application of the patch, as a minimal amount of time should be spent in allocations to be gained back by more efficient allocations.
+This benchmark was chosen to provide a baseline for performance changes due to application of the patch, as a minimal amount of time should be spent in allocations to be gained back by more efficient allocations.
 
 \subsection{Predictions}
 
@@ -46,7 +46,7 @@ Refer to the benchmark code in the \texttt{src/naive} directory in Appendix~\ref
 
 In the diagrams in Figure~\ref{firstsort} through Figure~\ref{lastsort}, the y axis represents the time taken for a given allocation method compared to the \functionname{malloc} benchmark, while the x axis represents the size of the input data. Values below 1 on the y axis outperform \malloc{}.
 
-The values in the diagrams are taken from a number of runs, from which the top third and bottom third of values were dropped as outliers. The minimum, maximum and mean values were then taken from the remaining values.
+The values in the diagrams are taken from a number of runs, from which the top third and bottom third of values were dropped as outliers. The minimum, maximum and mean values were then calculated from the remaining values.
 
 \begin{figure}[ph]
 	\centering
@@ -88,7 +88,7 @@ These results bode well, especially since the lack of significant performance di
 
 \section{Specialised Benchmark, Parallel Allocations}
 
-The second benchmark involves a large number of allocations and minimal busy work.
+The second case study involves a large number of allocations and minimal busy work.
 
 The setup code is identical to the setup for the sort benchmark described above, but instead of calling each function a fixed number of times it sets up a number of threads (in this case 4) which all call the function simultaneously for a total of 2 seconds. This is repeated a number of times (in this case 10) and the number of times the benchmark function was successfully called is taken as an indication of performance.
 
@@ -110,7 +110,7 @@ Refer to the benchmark code in the \texttt{src/parallel} directory in Appendix~\
 
 In the diagrams in Figure~\ref{firstparallel} through Figure~\ref{lastparallel}, the y axis represents the number of function calls completed for a given allocation method compared to the \functionname{malloc} benchmark, while the x axis represents the size of the input data. Values above 1 on the y axis outperform \malloc{}.
 
-The values in the diagrams are taken from a number of runs, from which the top third and bottom third of values were dropped as outliers. The minimum, maximum and mean values were then taken from the remaining values.
+The values in the diagrams are taken from a number of runs, from which the top third and bottom third of values were dropped as outliers. The minimum, maximum and mean values were then calculated from the remaining values.
 
 \begin{figure}[h]
 	\centering
@@ -140,7 +140,7 @@ However, the situations in which this sort of performance increase would be poss
 
 \section{Real World Benchmark, \toolname{cURL} Patch}
 
-The third and last benchmark involves a more careful analysis of Stenberg's patch to \toolname{cURL}~\cite{curlmalloc}. It covers both parts of the change described in Section~\ref{backgroundsec}.
+The third and last case study involves a more careful analysis of Stenberg's patch to \toolname{cURL}~\cite{curlmalloc}. It covers both parts of the change described in Section~\ref{backgroundsec}.
 
 The benchmark is performed by cloning \toolname{cURL}'s source and checking out\footnote{A checkout in this context refers to \texttt{git-checkout}, whereby the state of the code is rewound to a given point} the commits in which the changes were made.
 
@@ -188,7 +188,7 @@ The min/avg/max times are as reported by the \toolname{time} utility, and a desc
 	\caption{Description of the meanings of times reported by \toolname{time}}\label{timestable}
 \end{table}
 
-The values in the diagrams are taken from a number of runs, from which the top third and bottom third of values were dropped as outliers. The user, real, and sys time values were then taken from the remaining values and their minimum, maximum and mean found.
+The values in the diagrams are taken from a number of runs, from which the top third and bottom third of values were dropped as outliers. The user, real, and sys time values were then calculated from the remaining values and their minimum, maximum and mean found.
 
 Values less than 1 outperform the parent commit.
 
