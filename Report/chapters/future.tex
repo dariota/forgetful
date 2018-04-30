@@ -8,12 +8,12 @@ This section discusses potential further work directly on the \toolname{Forgetfu
 
 \subsection{Detecting Arbitrary Memory Allocations}
 
-The current implementation only finds allocations based on uses of \malloc{} and \free{}. Other ways to allocate memory exist (\functionname{calloc}, \functionname{realloc}, \functionname{alloca}, direct uses of \functionname{mmap} and \functionname{sbrk}), and platforms that stand to gain the most from this optimisation may have their own implementations.
+The current implementation only finds allocations based on uses of \malloc{} and \free{}. Other ways to allocate memory exist (\functionname{calloc}, \functionname{realloc}, direct uses of \functionname{mmap} and \functionname{sbrk}), and platforms that stand to gain the most from this optimisation may have their own implementations.
 
 An extension to this work could involve allowing an arbitrary list of functions declared to allocate or deallocate memory, but this would require the existence of annotated files specifying their behaviour so that \toolname{Frama-C} can be used to its full potential (particularly for value analysis, which relies on these specifications).
 
 Alternatively, if there is a willingness to assume a UNIX-like platform, the depth of analysis could be extended to attempt to automatically determine which functions might allocate memory by searching for \functionname{mmap} or \functionname{sbrk} calls and propagating annotations indicating functions that directly or indirectly allocate memory.\\
-The approach propagating allocation information already exists in some form in the \toolname{Infer}~\cite{fbinfer} static analyser, so future work could also involve extending that platform instead.
+The approach propagating allocation information already exists, in some form, in the \toolname{Infer}~\cite{fbinfer} static analyser, so future work could also involve extending that platform instead.
 
 \subsection{Automatically Performing Fixes}
 
@@ -21,13 +21,13 @@ Ideally, fixes would be automatically generated and patched into the code as a p
 
 Potential intermediate steps toward that goal could involve generation of patches that could be manually applied to code before compilation, introducing the optimisation.
 
-Based on the documentation for \toolname{Frama-C} and one of its plug-ins, \toolname{PathCrawler}, it is unclear whether there are code generation capabilities in \toolname{Frama-C} or if the plug-in introduced them itself. Depending on this, this goal may be very complicated to complete, and potentially not worthwhile.
+Based on the documentation for \toolname{Frama-C} and one of its plug-ins, \toolname{PathCrawler}, it is unclear whether there are code generation capabilities in \toolname{Frama-C} or if the plug-in introduced them itself. If this capability is not present, this goal may be very complicated to complete, and potentially not worthwhile.
 
 \subsection{Higher Precision in Allocation Sizing Calculations}
 
-\toolname{Frama-C} has built in defaults for sizes of various types, which mostly seem to be based on a 32-bit architecture. As a result, size calculations can be inaccurate, particularly on 64-bit machines with factor of 2 inaccuracies in any size calculation involving pointers.
+\toolname{Frama-C} has built in defaults for sizes of various types, which mostly seem to be based on a 32-bit architecture. As a result, size calculations can be inaccurate, for example on 64-bit machines where factor of 2 inaccuracies will occur in any size calculation involving pointers.
 
-Not accounting for these differences will lead to \toolname{Forgetful} recommending replacements at sites where in practice more memory than the configured maximum is allocated. \toolname{Frama-C} provides a system to define sizes of all the types, which could be exposed to users to allow them to specify their architecture details.
+Not accounting for these differences will lead to \toolname{Forgetful} recommending replacements at sites where, in practice, more memory than the configured maximum is allocated. \toolname{Frama-C} provides a system to define sizes of all the types, which could be exposed to users to allow them to specify their architecture details.
 
 \subsection{Alternative Architectures}
 
@@ -51,15 +51,15 @@ Further work determining a more accurate and general figure (or figures) for yea
 
 Proebsting's Law seeks to make a general prediction about performance improvements due to compiler optimisations over time but, as Scott notes, different types of benchmarks display very different levels of performance increase.
 
-It is noted that floating point benchmarks improve significantly more than integer based benchmarks, which means that scientific applications will likely disproportionately benefit scientific applications~\cite{proebstingformal}.
+It is noted that floating point benchmarks improved significantly more than integer based benchmarks, which means that optimisations have disproportionately benefited scientific applications~\cite{proebstingformal}.
 
-Similar to the previous section, perhaps determining expected figures for various areas of research could be worthwhile.
+Similar to the previous section, perhaps determining expected figures for various areas of research or classes of program could be worthwhile.
 
 \subsection{Targets for Optimisation}
 
 Contrary to the usual definition, \textit{target} here does not refer to a target machine or architecture, but instead the goal of a given optimisation and the research into it.
 
-In declaring his law, Proebsting also suggests that future research be directed at improving programmer productivity, rather than micro-optimisations~\cite{proebstingdecl}. Pugh suggests the same, stating that optimisation of higher level constructs and designs have more space for optimisation than expression and statement-level optimisations.
+In declaring his law, Proebsting also suggests that future research be directed at improving programmer productivity, rather than micro-optimisations~\cite{proebstingdecl}. Pugh suggests the same, stating that higher level constructs and designs have more space for improvement than expression and statement-level optimisations.
 
 Alongside these suggestions, Pugh lists a number of areas in which research may be worthwhile, including the following~\cite{optimisationrelevant}:
 
