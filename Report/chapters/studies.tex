@@ -20,7 +20,7 @@ Another caveat to the use of \functionname{alloca} is that while it appears to b
 		\functionname{malloc} & Performs the allocation with \malloc{}, providing a base performance to compare against. \free{}s the allocated block before returning \\
 		\functionname{stack} & Performs the allocation with \functionname{alloca} regardless of the size of the input data even though this would introduce a significant risk of stack overflow in real code. No \free{} required \\
 		\functionname{dynamic} & Performs the allocation with \malloc{} if the input data is larger than a given threshold (in this case, 64 items or 512 bytes), otherwise uses an array of static size declared as a local variable (and, hence, stack allocated as part of the calling code). \free{}s before returning if required \\
-		\functionname{external} & Performs no allocation, instead taking a parameter of a pointer to sufficiently large buffer to copy data to, which it doesn't \free{}. Acts as a control as no allocation is performed and so it should always be the fastest \\
+		\functionname{external} & Performs no allocation, instead taking a parameter of a pointer to a sufficiently large buffer to copy data to, which it doesn't \free{}. Acts as a control as no allocation is performed and so it should always be the fastest \\
 		\bottomrule
 	\end{tabularx}
 	\caption{Allocation Types}\label{alloctype}
