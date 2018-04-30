@@ -8,7 +8,7 @@ The benchmark setup code creates input data of an array of structs containing a 
 
 The benchmarking functions each perform a single allocation before copying the input buffer into the newly allocated block. How this allocation is performed is the core difference. The four types of allocation used are described in Table~\ref{alloctype}.
 
-Note that \functionname{alloca}\footnote{\functionname{alloca} performs a stack allocation at runtime in a similar manner to \malloc{}, but does not perform checks for whether the stack will overflow as a result and doesn't require \free{}ing as restoring the stack pointer on function return will automatically free the block} is used despite its general unsuitability for use in safe code. This is to simplify ensuring that there is always enough space in the \functionname{stack} benchmark function, in which errors are not fatal.\\
+Note that \functionname{alloca}\footnote{\functionname{alloca} performs a stack allocation at runtime in a similar manner to \malloc{}, but does not perform checks for whether the stack will overflow as a result and doesn't require \free{}ing, as restoring the stack pointer on function return will automatically free the block} is used despite its general unsuitability for use in safe code. This is to simplify ensuring that there is always enough space in the \functionname{stack} benchmark function, in which errors are not fatal.\\
 Another caveat to the use of \functionname{alloca} is that while it appears to be a standard library function, it's not actually part of the ANSI/ISO-C standard~\cite{c11std} and is simply replaced inline by compiler implementations. This causes portability concerns.
 
 \begin{table}
@@ -20,7 +20,7 @@ Another caveat to the use of \functionname{alloca} is that while it appears to b
 		\functionname{malloc} & Performs the allocation with \malloc{}, providing a base performance to compare against. \free{}s the allocated block before returning \\
 		\functionname{stack} & Performs the allocation with \functionname{alloca} regardless of the size of the input data even though this would introduce a significant risk of stack overflow in real code. No \free{} required \\
 		\functionname{dynamic} & Performs the allocation with \malloc{} if the input data is larger than a given threshold (in this case, 64 items or 512 bytes), otherwise uses an array of static size declared as a local variable (and, hence, stack allocated as part of the calling code). \free{}s before returning if required \\
-		\functionname{external} & Performs no allocation, instead taking a parameter of a pointer to a sufficiently large buffer to copy data to, which it doesn't \free{}. Acts as a control as no allocation is performed and so it should always be the fastest \\
+		\functionname{external} & Performs no allocation, instead taking a parameter of a pointer to a sufficiently large buffer to copy data to, which it doesn't \free{}. Acts as a control, as no allocation is performed and so it should always be the fastest \\
 		\bottomrule
 	\end{tabularx}
 	\caption{Allocation Types}\label{alloctype}
@@ -49,7 +49,7 @@ The values in the diagrams are taken from a number of runs, from which the top t
 \begin{figure}[ph]
 	\centering
 	\includegraphics[width=0.8\textwidth]{sort/O0chart}
-	\caption{Unexpectedly, \functionname{stack} performs worse than \functionname{malloc}. Others perform as expected. From inspecting the generated assembly, it looks like -O0 produces very inefficient code for alloca.}\label{firstsort}
+	\caption{Unexpectedly, \functionname{stack} performs worse than \functionname{malloc}. Others perform as expected. From inspecting the generated assembly, it looks like the O0 optimisation level produces very inefficient code for alloca.}\label{firstsort}
 \end{figure}
 
 \begin{figure}[ph]
@@ -88,7 +88,7 @@ These results bode well, especially since the lack of significant performance di
 
 The second case study involves a large number of allocations and minimal busy work.
 
-The setup code is identical to the setup for the sort benchmark described above, but instead of calling each function a fixed number of times it sets up a number of threads (in this case 4) which all call the function simultaneously for a total of 2 seconds. This is repeated a number of times (in this case 10) and the number of times the benchmark function was successfully called is taken as an indication of performance.
+The setup code is identical to the setup for the sort benchmark described above, but instead of calling each function a fixed number of times it sets up a number of threads (in this case 4) which all call the benchmark function simultaneously for a total of 2 seconds. The number of times the benchmark function was successfully called is taken as an indication of performance. This process is then repeated 10 times and the mean calculated.
 
 However, instead of sorting the input data, the functions simply copy the input data to the allocated buffer. The allocation types used are the same as in the sort benchmark.
 
@@ -119,7 +119,7 @@ The values in the diagrams are taken from a number of runs, from which the top t
 \begin{figure}[p]
 	\centering
 	\includegraphics[width=0.8\textwidth]{parallel/O1chart}
-	\caption{As seen in the sort benchmark, \functionname{stack} and \functionname{dynamic} perform roughly the same, while external outperforms both. Unlike the sort benchmark, \functionname{stack} and \functionname{external}'s performance benefits don't completely drop off on large input data.}
+	\caption{As seen in the sort benchmark, \functionname{stack} and \functionname{dynamic} perform roughly the same, while \functionname{external} outperforms both. Unlike the sort benchmark, \functionname{stack} and \functionname{external}'s performance benefits don't completely drop off on large input data.}
 \end{figure}
 
 \begin{figure}[p]
@@ -159,16 +159,16 @@ By contrast, \toolname{cURL}'s timing cannot focus in only on allocation sites, 
 
 Note that the polling function, \functionname{curl\_multi\_wait}, is benchmarked with 1 and 11 file descriptors. The single file descriptor benchmark is intended to trigger the best case, where a small heap allocation is replaced with a stack allocation, whereas the 11 descriptor benchmark is intended as a control, as its performance should be identical before and after the change. This is due to the fact that only up to 10 descriptors are stack allocated.
 
-There are a number of changes included in the linked list changes, such as: changing initialisation functions from a \malloc{}+\functionname{memset} to a single \functionname{calloc} having the same effect; or a cascading effect from the change to the linked list functions being unable to fail due to a lack of memory resulting in less checks being necessary in code using those functions. These changes could all impact the performance, but should favour the new version of the code performance-wise.\\
+There are a number of changes included in the linked list changes, such as: changing initialisation functions from a \malloc{}+\functionname{memset} to a single \functionname{calloc} having the same effect; and a reduction in checks required after uses of linked list functions (as they can no longer fail due to lack of memory available). These changes could all impact the performance, but should favour the new version of the code performance-wise.\\
 To test the linked list changes, a single large and empty file was retrieved from a server running locally.
 
 \subsection{Patch Code}
 
-Refer to the \texttt{replicate.sh} script in the \texttt{src/curl} directory in Appendix~\ref{codeappend}. Running this script on a machine with the required dependencies (refer to the \toolname{cURL} source to determine what dependencies are required to build it) will produce the executables used to benchmark and then run the benchmark.
+Refer to the \texttt{replicate.sh} script in the \texttt{src/curl} directory in Appendix~\ref{codeappend}. Running this script on a machine with the required dependencies (refer to the \toolname{cURL} source to determine what dependencies are required to build it) will produce the executables used in the benchmark and then run the benchmark.
 
 \subsection{Results}
 
-In the diagrams in Figure~\ref{firstcurl} through Figure~\ref{lastcurl}, the y axis represents the run-time of the patched version of \toolname{cURL} as a proportion of the time taken to perform the same task by the parent commit. This is used as a proxy for performance. On the x axis, \functionname{curl-llist} is the result of testing the linked list changes, \functionname{curl-multi-wait-1} is the result of testing the polling function changes with a single file descriptor, \functionname{curl-multi-wait-11} is the control using 11 file descriptors.
+In the diagrams in Figure~\ref{firstcurl} through Figure~\ref{lastcurl}, the y axis represents the run-time of the patched version of \toolname{cURL} as a proportion of the time taken to perform the same task by the parent commit. This is used as a proxy for performance. On the x axis, \functionname{curl-llist} is the result of testing the linked list changes, \functionname{curl-multi-wait-1} is the result of testing the polling function changes with a single file descriptor, and \functionname{curl-multi-wait-11} is the control using 11 file descriptors.
 
 The min/avg/max times are as reported by the \toolname{time} utility, and a description of the meaning of user/real/sys is in Table~\ref{timestable}.
 
@@ -186,7 +186,7 @@ The min/avg/max times are as reported by the \toolname{time} utility, and a desc
 	\caption{Description of the meanings of times reported by \toolname{time}}\label{timestable}
 \end{table}
 
-The values in the diagrams are taken from a number of runs, from which the top third and bottom third of values were dropped as outliers. The user, real, and sys time values were then calculated from the remaining values and their minimum, maximum and mean found.
+The values in the diagrams are taken from a number of runs, from which the top third and bottom third of values were dropped as outliers. The user, real, and sys times were then calculated from the remaining values and their minimum, maximum and mean found.
 
 Values less than 1 outperform the parent commit.
 
@@ -210,4 +210,4 @@ Values less than 1 outperform the parent commit.
 
 \subsection{Comparison to Predictions}
 
-The results in this benchmark were unexpectedly poor, and differed completely from predictions and indeed from what Stenberg claimed. It seems that one or more of the other commits lumped in with his measurements may have affected the performance difference.
+The results in this benchmark were unexpectedly poor, and differed completely from predictions and indeed from what Stenberg claimed. It seems that one or more of the other commits lumped in with his measurements may have affected the performance difference. Variance in results were often overshadowed by variance in the testing environment.
