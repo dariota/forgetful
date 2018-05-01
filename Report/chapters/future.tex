@@ -1,6 +1,6 @@
 \epigraph{A program is never less than 90\% complete, and never more than 95\% complete.}{Terry Baker}
 
-Any non-trivial work is never complete, and the optimisation field in particular is provably endlessly expandable due to the \textit{full employment for compiler writers} theorem~\cite{compilerimpl}. To that end, listed below are some ideas for potential improvements on the \toolname{Forgetful} plug-in and in the general space of compiler optimisations.
+Any non-trivial work is never complete, and the optimisation field in particular is provably endlessly expandable due to the \textit{full employment for compiler writers} theorem~\cite{compilerimpl}. To the end of inspiring such work, listed below are some ideas for potential improvements on the \toolname{Forgetful} plug-in and in the general space of compiler optimisations.
 
 \section{Further Work on Allocation Changes}
 
@@ -12,7 +12,7 @@ The current implementation only finds allocations based on uses of \malloc{} and
 
 An extension to this work could involve allowing an arbitrary list of functions declared to allocate or deallocate memory, but this would require the existence of annotated files specifying their behaviour so that \toolname{Frama-C} can be used to its full potential (particularly for value analysis, which relies on these specifications).
 
-Alternatively, if there is a willingness to assume a UNIX-like platform, the depth of analysis could be extended to attempt to automatically determine which functions might allocate memory by searching for \functionname{mmap} or \functionname{sbrk} calls and propagating annotations indicating functions that directly or indirectly allocate memory.\\
+Alternatively, the depth of analysis could be extended to attempt to automatically determine which functions might allocate memory. Assuming a UNIX-like platform, searching for \functionname{mmap} or \functionname{sbrk} calls would allow the detection of those functions.\\
 The approach propagating allocation information already exists, in some form, in the \toolname{Infer}~\cite{fbinfer} static analyser, so future work could also involve extending that platform instead.
 
 \subsection{Automatically Performing Fixes}
@@ -27,11 +27,11 @@ Based on the documentation for \toolname{Frama-C} and one of its plug-ins, \tool
 
 \toolname{Frama-C} has built in defaults for sizes of various types, which mostly seem to be based on a 32-bit architecture. As a result, size calculations can be inaccurate, for example on 64-bit machines where factor of 2 inaccuracies will occur in any size calculation involving pointers.
 
-Not accounting for these differences will lead to \toolname{Forgetful} recommending replacements at sites where, in practice, more memory than the configured maximum is allocated. \toolname{Frama-C} provides a system to define sizes of all the types, which could be exposed to users to allow them to specify their architecture details.
+Not accounting for these differences will lead to \toolname{Forgetful} recommending replacements at sites where, in practice, more memory than the configured maximum is allocated. \toolname{Frama-C} provides a system to define sizes of all the types, which could be exposed to users, allowing them to specify their architecture details.
 
 \subsection{Alternative Architectures}
 
-For the sake of practicality and convenience, the analysis presented was only performed on a single x86 machine. To be certain whether these results apply more generally, the analysis should also be performed on other architectures.
+For the sake of practicality and the limited time available to source and configure machines on other architectures, the analysis presented was only performed on a single x86 machine. To be certain whether these results apply more generally, the analysis should also be performed on other architectures.
 
 \section{General Compiler Optimisation Research}
 
@@ -39,7 +39,7 @@ This section is concerned with the more general area of research into compiler o
 
 \subsection{Potential For Bias Against Optimisations In Evaluation of Proebsting's Law}
 
-Scott notes four potential issues with his analysis of Proebsting's Law. While the first three are suitably discussed and dismissed, the fourth is briefly covered and then assumed to not disproportionately affect the analysis. The issue is that it is impossible to fully disable all optimisations in a compiler through configuration.
+Scott notes four potential issues with his analysis of Proebsting's Law. While Scott suitably discusses and dismisses the first three, the fourth is briefly covered and then assumed to not disproportionately affect the analysis. This fourth issue is that it is impossible to fully disable all optimisations in a compiler through configuration.
 
 The method used involves compiling certain benchmarks first with all compiler optimisations disabled through configuration options, then again with the flags recommended by the vendors for those benchmarks. The assumptions are that a compiler with all optimisations disabled is equivalent to a compiler before new optimisations were discovered and implemented. However, certain optimisations such as peephole optimisations or more efficient code generation techniques cannot be disabled. This results in a baseline program which is more efficient than it would have been, had it been compiled with an older compiler~\cite{proebstingformal}.
 
@@ -53,7 +53,7 @@ Proebsting's Law seeks to make a general prediction about performance improvemen
 
 It is noted that floating point benchmarks improved significantly more than integer based benchmarks, which means that optimisations have disproportionately benefited scientific applications~\cite{proebstingformal}.
 
-Similar to the previous section, perhaps determining expected figures for various areas of research or classes of program could be worthwhile.
+Similar to the previous section's suggestion to produce figures to compare to, perhaps determining expected figures for various areas of research or classes of program could also be worthwhile.
 
 \subsection{Targets for Optimisation}
 
@@ -67,7 +67,7 @@ Alongside these suggestions, Pugh lists a number of areas in which research may 
 	\itemsep-0.25em
 	\item Making higher level constructs and data types as efficient as primitives, with little to no programmer intervention
 	\item Optimising safety checks away, so that safe code can be as performant as unsafe alternatives
-	\item Performing optimisations that allow clean and easily readable code to be as efficient as carefully hand optimised code using techniques such as loop unrolling and cache-aligning related data (this is already performed to certain degrees in industrial compilers, but can require programmer intervention and cluttering code to maximise performance~\cite{gccloops})
+	\item Performing optimisations that allow clean and easily readable code to be as efficient as carefully hand optimised code using techniques such as loop unrolling and cache-aligning related data (this is already performed to some degree in industrial compilers, but can require programmer intervention and cluttering code to maximise performance~\cite{gccloops})
 	\item Allowing language level guarantees about certain optimisations and performance, such as guaranteeing that tail-call elimination will occur (this specific case is tentatively offered by Haskell~\cite{haskelltail})
 	\item Replacing inefficient algorithms with efficient versions having the same results, such as detecting presence of a quadratic stable sort and replacing it with a linearithmic stable sort
 	\item Providing stronger safety guarantees for concurrent programs
@@ -77,4 +77,4 @@ Alongside these suggestions, Pugh lists a number of areas in which research may 
 
 Benchmarks are often designed, as the specialised ones in this project were, to elicit certain behaviours. As such, they are carefully tailored, hand optimised, and written at a very low level to avoid other behaviours that may affect their performance. However, this means that these benchmarks do not reflect real world code, and Pugh even argues that their style is so poor and unrealistic that they shouldn't be exposed to undergraduates~\cite{optimisationrelevant}.
 
-Instead, he suggests, they should be written to reflect that real code is complex, and should use techniques and utilities such as higher level constructs, parallelism and more modular components. This would enable benchmarking of bigger picture optimisations that the preceding sections all eventually build towards.
+Instead, he suggests, they should be written to reflect that real code is complex, and should use techniques and utilities such as higher level constructs, parallelism and more modular components. This would enable benchmarking of bigger picture optimisations that the preceding sections' work would support.

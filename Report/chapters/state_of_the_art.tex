@@ -32,7 +32,7 @@ While it wasn't explicitly designed for modularity like \toolname{Frama-C}, its 
 
 \subsection{\toolname{clang-analyzer}}
 
-\toolname{clang-analyzer}, which \toolname{Infer} depends on, is the only analyser in this list not written in OCaml, instead being in C++ to match the rest of the \toolname{clang} codebase. Among features listed in its documentation are a few memory analysis checkers (null dereference, double free, stack reference escape detection~\cite{clangchecks}) that could prove to be a useful base to build off. Familiarity with C++ (at least compared to a lack of familiarity with OCaml) could also have proven useful in development, reducing delays.
+\toolname{clang-analyzer}, which \toolname{Infer} depends on, is the only analyser in this list not written in OCaml, instead being in C++ to match the rest of the \toolname{clang} codebase. Among features listed in its documentation are a few memory analysis checkers (null dereference, double free, stack reference escape detection~\cite{clangchecks}) that could prove to be a useful base to build upon. Familiarity with C++ (at least compared to a lack of familiarity with OCaml) could also have proven useful in development, reducing delays.
 
 \toolname{clang-analyzer}'s development is much less active than \toolname{Infer}'s, but still more active (or at least more frequently updated) than \toolname{Frama-C}'s. It also has mailing lists and other community communication channels which could have been useful. It's the oldest of the three, started in September 2007~\cite{clangrelease}, but has undergone a huge amount of development since then (a caveat here: its full development lifecycle is public, from inception to its current state, unlike the other two, which can make it seem more active).
 
@@ -40,7 +40,7 @@ One unique mark against \toolname{clang-analyzer} is its heavy emphasis on OS X 
 
 \section{Alternative Detection Methods}
 
-Other than static analysis/compile-time checking, run-time analysis can also be used to surface issues in the code. This profiling method has an added benefit that, used properly, it can better reflect performance under real workloads. There are three main ways of achieving this, which are all different levels of the same thing.
+Other than static analysis/compile-time checking, run-time analysis can also be used to surface issues in the code. This profiling method has an added benefit that, used properly, it can better reflect performance under real workloads. There are three main ways of achieving this, which are all different levels of the same concept.
 
 \subsection{Custom Wrapper Functions}
 
@@ -52,9 +52,9 @@ This method has the obvious downside that the system must be maintained by its u
 
 \subsection{Provided Wrapper Functions}
 
-When the fine-grained control allowing interception of any given function, or the ability to add more things to profile is not needed, wrapper functions can be found already written available online to be compiled along with your existing code.
+When the fine-grained control allowing interception of any given function, or the ability to add more functions to profile is not needed, wrapper functions can be found already written available online to be compiled along with any existing code.
 
-Similar to the above, these intercept calls to memory management functions, outputting profiling data to a specified log file. One such example is \toolname{malloc\_count}, which can also track stack usage~\cite{malloccount}. Since these projects are more focused on this specific task, they also attempt to meet standards for formatting of the output, which allows the user to use their profiling data with existing graphing tools for memory profiling dumps.
+Similar to the above, these intercept calls to memory management functions, outputting profiling data to a specified log file. One such example is \toolname{malloc\_count}, which can also track stack usage~\cite{malloccount}. Since the projects providing these wrappers are more focused on this specific task, they also attempt to meet standards for formatting of the output, which allows the user to use their profiling data with existing graphing tools for memory profiling dumps.
 
 While this method doesn't have the advantage of fine-tuned control of what exact data is dumped nor which functions are intercepted, it also doesn't suffer the disadvantages of maintenance and development of the system. It also benefits over the next method by being faster.
 
@@ -84,13 +84,13 @@ Another consideration for the utility of the patch are the different potential t
 
 Puaut finds that ratio of average to worst-case performance (obtained analytically) of memory allocation algorithms varies from about 10–10000 (the lower bound algorithms have an average case of about 10x those of the higher bound), while stack allocation has fixed performance, even if bounds checking is added~\cite{mallocperf}. Of course, similar benefits could be obtained with correct use of an allocator designed for that purpose.
 
-However, Puaut also finds that the actual observed ratio of average to worst-case performance ranges from about 1–35, so for real workloads the effect may, again, not be great.
+However, Puaut also finds that the actual observed ratio of average to worst-case performance ranges from about 1–35, so for real workloads the effect may, again, not be very significant.
 
 \section{Validation of Project Space}
 
 In order to validate the project space, other attempts to target the same inefficiencies were searched for. Small amounts of short-lived memory is the purview of the youngest generation of generational garbage collection, while other approaches to tackling the same issue could instead go directly to the allocator method in order to explicitly split out these allocations ahead of time.
 
-\subsection{Generation Garbage Collection}
+\subsection{Generational Garbage Collection}
 
 Generational (or ephemeral) garbage collection relies on a hypothesis, supported by empirical measurements, that the most recently created objects are also those most likely to become unreachable quickly.
 
