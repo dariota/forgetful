@@ -1,1 +1,9 @@
-This is where I would put the abstract, IF I HAD ONE
+Changes have been made to \toolname{cURL}, replacing short-lived dynamic memory allocations with stack allocations. Significant performance increases were claimed to result from these changes, and this project seeks to both validate those claims and make similar changes easier to perform in other codebases.
+
+A plug-in was produced for the \toolname{Frama-C} static analysis platform, enabling it to detect small and short lived memory allocations in an intra-procedural scope.
+
+Case studies were performed comparing the performance of code before and after the replacement of dynamic memory allocation with alternative allocation methods.
+
+The impact of similar changes on the \toolname{cURL} codebase were analysed as a real world case study by comparing the performance of binaries built from it before and after the changes. 
+
+An evaluation of the results of these case studies is then presented.
