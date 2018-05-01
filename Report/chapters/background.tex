@@ -19,6 +19,7 @@ Doing the same with the \varname{data\_after} struct would require no extra allo
 This has two beneficial results:
 
 \begin{itemize}
+	\itemsep-0.25em
 	\item Linked list functions can't fail due to memory constraints any more, simplifying logic that uses them
 	\item One less \malloc{} and \free{} per linked list operation
 \end{itemize}
@@ -37,7 +38,7 @@ Stenberg claims that in a simple benchmark this change resulted in a 99.62\% dec
 
 \subsection{Results of the Changes}
 
-The version of the tool built with these changes was then compared in a fully local benchmark (to avoid any impact of network connectivity or other external factors) to the previous release. Stenberg reports it performed 30\% faster, transferring 2900~MB/sec vs the previous version's 2200~MB/sec.
+The version of the tool built with these changes was then compared in a fully local benchmark (to avoid any impact of network connectivity or other external factors) to the previous release. Stenberg reports that it performed 30\% faster, transferring 2900~MB/sec vs the previous version's 2200~MB/sec.
 
 However, this comparison attributes all performance and allocation differences to these two commits, despite there having been 231 commits in total between the two versions. Stenberg highlights this, but adds a caveat that none of them spring to mind as having an impact on the number of allocations or significant performance changes.
 
@@ -46,8 +47,9 @@ However, this comparison attributes all performance and allocation differences t
 The project has two main objectives, in which \textit{patch} refers to applying changes which replace dynamic allocation with stack or static allocation.
 
 \begin{enumerate}
+	\itemsep-0.25em
 	\item Produce a tool that can detect sites where there is potential to perform the patch
-	\item Determining the impact the patch can have on performance
+	\item Determine the impact that the patch can have on performance
 \end{enumerate}
 
 \subsection{Tool to Detect Potential Patch Sites}
@@ -56,7 +58,7 @@ The general pattern of sites where a patch can be applied appears similar to the
 
 \lstinputlisting[style=CStyle,label=patternsample]{samples/pattern.c}
 
-where the \malloc{} and \free{} on lines 2 and 4 could instead be replaced with stack allocation\footnote{The details of how stack allocation would be achieved in this situation is explored further later, the details are unimportant at this point}, avoiding both of those calls and indeed completely avoiding any risk of a memory leak\footnote{A memory leak refers to a dynamic allocation (using the \malloc{} family or similar) which is never \free{}d and so consumes memory until the program exits, even if it's no longer being used}.
+where the \malloc{} and \free{} on lines 2 and 4 could instead be replaced with stack allocation\footnote{The details of how stack allocation would be achieved in this situation are explored further later, but are unimportant at this point}, avoiding both of those calls and indeed completely avoiding any risk of a memory leak\footnote{A memory leak refers to a dynamic allocation (using the \malloc{} family or similar) which is never \free{}d and so consumes memory until the program exits, even if it's no longer being used}.
 
 The concept is simple: some amount of memory is allocated, used for a short amount of time, then \free{}d. In a small example, the pattern is obvious and easy to detect, or even to not introduce in the first place. However, as seen in the real world \toolname{cURL} example, these patterns are introduced, either by mistake or for simplicity (relative to more complex code required for safe stack allocation).
 
@@ -67,7 +69,7 @@ There are also further considerations to be taken before replacing a heap alloca
 	\item Stack overflow can be caused by stack allocation of a large amount of data, resulting in UB
 	\item A pointer to the data escaping its scope would result in a dangling pointer, whose dereferencing results in UB
 	\item The variable may be assigned to at various different points, complicating stack allocation (depending on the method used)
-	\item If static allocation is used, it must be guaranteed that the function can only be executed in one site at a time to avoid multiple sites overwriting each other's data, and the function will not be reentrant\footnote{Reentrancy is a property of a function that may be entered while a previous invocation is still executing without affecting the correctness of either execution, and is a required property of a recursive function}
+	\item If static allocation is used, it must be guaranteed that the function can only be executed in one site at a time to avoid multiple sites overwriting each other's data, and the function will not be reentrant\footnote{Reentrancy is a property of a function that may be entered while a previous invocation is still executing without affecting the correctness of either execution, and is a required property of recursive functions}
 \end{itemize}
 
 The tool should take as many of these cases into consideration as possible, to avoid suggesting applying the patch at sites where it would cause errors.
