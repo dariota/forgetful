@@ -39,7 +39,7 @@ This section is concerned with the more general area of research into compiler o
 
 \subsection{Potential For Bias Against Optimisations In Evaluation of Proebsting's Law}
 
-Scott notes four potential issues with his analysis of Proebsting's Law. While Scott suitably discusses and dismisses the first three, the fourth is briefly covered and then assumed to not disproportionately affect the analysis. This fourth issue is that it is impossible to fully disable all optimisations in a compiler through configuration.
+In his research into Proebsting's law, Scott notes four potential issues with his analysis~\cite{proebstingformal}. While he suitably discusses and dismisses the first three, the fourth is briefly covered and then assumed to not disproportionately affect the analysis. This fourth issue is that it is impossible to fully disable all optimisations in a compiler through configuration.
 
 The method used involves compiling certain benchmarks first with all compiler optimisations disabled through configuration options, then again with the flags recommended by the vendors for those benchmarks. The assumptions are that a compiler with all optimisations disabled is equivalent to a compiler before new optimisations were discovered and implemented. However, certain optimisations such as peephole optimisations or more efficient code generation techniques cannot be disabled. This results in a baseline program which is more efficient than it would have been, had it been compiled with an older compiler~\cite{proebstingformal}.
 
@@ -59,9 +59,9 @@ Similar to the previous section's suggestion to produce figures to compare to, p
 
 Contrary to the usual definition, \textit{target} here does not refer to a target machine or architecture, but instead the goal of a given optimisation and the research into it.
 
-In declaring his law, Proebsting also suggests that future research be directed at improving programmer productivity, rather than micro-optimisations~\cite{proebstingdecl}. Pugh suggests the same, stating that higher level constructs and designs have more space for improvement than expression and statement-level optimisations.
+In declaring his law, Proebsting also suggests that future research be directed at improving programmer productivity, rather than micro-optimisations~\cite{proebstingdecl}. Pugh suggests the same, stating that higher level constructs and designs have more space for improvement than expression and statement-level optimisations~\cite{optimisationrelevant}.
 
-Alongside these suggestions, Pugh lists a number of areas in which research may be worthwhile, including the following~\cite{optimisationrelevant}:
+Alongside these suggestions, Pugh lists a number of areas in which research may be worthwhile, including the following:
 
 \begin{itemize}
 	\itemsep-0.25em

@@ -46,34 +46,43 @@ In the diagrams in Figure~\ref{firstsort} through Figure~\ref{lastsort}, the y a
 
 The values in the diagrams are taken from a number of runs, from which the top third and bottom third of values were dropped as outliers. The minimum, maximum and mean values were then calculated from the remaining values.
 
+Unexpectedly, at the O0 optimisation level in Figure~\ref{firstsort}, \functionname{stack} performs worse than \functionname{malloc}. Others perform as expected. From inspecting the generated assembly, it looks like the O0 optimisation level produces very inefficient code for alloca.
+
+At the O1 optimisation level in Figure~\ref{sortO1}, every allocation method performed mostly as expected. \functionname{stack} and \functionname{dynamic} seem to perform very similarly, until \functionname{dynamic} unexpectedly starts underperforming \functionname{malloc} shortly before falling back to \functionname{malloc} level performance at around the same input size as the other methods' performance converge with \functionname{malloc}.
+
+At the O2 optimisation level in Figure~\ref{sortO2}, every allocation method performed mostly as expected. \functionname{dynamic} shouldn't be faster than \functionname{stack}, but the difference is small and the gap is closed after the first item.
+
+At the O3 optimisation level in Figure~\ref{sortO3}, an unusual drop of performance is seen in the \functionname{dynamic} case, with the rest performing as expected. This appears to be caused by function inlining, where the function copying input to the allocated buffer is inlined twice in the \functionname{dynamic} benchmark function. The copy used for the case using \malloc{} is optimised to use \functionname{memcpy} while the other does not. This causes the case using stack allocation to perform worse due to the slow copy, rather than any allocation issue.\\
+Figure~\ref{lastsort} demonstrates that this unusual behaviour disappears when function inlining is disabled.
+
 \begin{figure}[ph]
 	\centering
 	\includegraphics[width=0.8\textwidth]{sort/O0chart}
-	\caption{Unexpectedly, \functionname{stack} performs worse than \functionname{malloc}. Others perform as expected. From inspecting the generated assembly, it looks like the O0 optimisation level produces very inefficient code for alloca.}\label{firstsort}
+	\caption{Bounds of performance benchmarks for the different allocation strategies at the O0 optimisation level}\label{firstsort}
 \end{figure}
 
 \begin{figure}[ph]
 	\centering
 	\includegraphics[width=0.8\textwidth]{sort/O1chart}
-	\caption{Everything performing mostly as expected. \functionname{stack} and \functionname{dynamic} seem to perform very similarly, until \functionname{dynamic} unexpectedly starts underperforming \functionname{malloc} shortly before falling back to \functionname{malloc} level performance at around the same input size as the other methods' performance converge with \functionname{malloc}.}
+	\caption{Bounds of performance benchmarks for the different allocation strategies at the O1 optimisation level}\label{sortO1}
 \end{figure}
 
 \begin{figure}[ph]
 	\centering
 	\includegraphics[width=0.8\textwidth]{sort/O2chart}
-	\caption{Everything mostly as expected. \functionname{dynamic} shouldn't be faster than \functionname{stack}, but the difference is small and the gap is closed after the first item.}
+	\caption{Bounds of performance benchmarks for the different allocation strategies at the O2 optimisation level}\label{sortO2}
 \end{figure}
 
 \begin{figure}[ph]
 	\centering
 	\includegraphics[width=0.8\textwidth]{sort/O3chart}
-	\caption{An unusual drop of performance in the \functionname{dynamic} case, with the rest performing as expected. This appears to be caused by function inlining, where the function copying input to the allocated buffer is inlined twice in the \functionname{dynamic} benchmark function. The copy used for the case using \malloc{} is optimised to use \functionname{memcpy} while the other does not. This causes the case using stack allocation to perform worse due to the slow copy, rather than any allocation issue.}
+	\caption{Bounds of performance benchmarks for the different allocation strategies at the O3 optimisation level}\label{sortO3}
 \end{figure}
 
 \begin{figure}[ph]
 	\centering
 	\includegraphics[width=0.8\textwidth]{sort/O3chart-no-inline}
-	\caption{The same as the figure above, but with function inlining disabled. Once again, \functionname{dynamic} slightly outperforms \functionname{stack} on small cases.}\label{lastsort}
+	\caption{Bounds of performance benchmarks for the different allocation strategies at the O3 optimisation level with function inlining disabled}\label{lastsort}
 \end{figure}
 
 \subsection{Comparison to Predictions}
@@ -110,22 +119,28 @@ In the diagrams in Figure~\ref{firstparallel} through Figure~\ref{lastparallel},
 
 The values in the diagrams are taken from a number of runs, from which the top third and bottom third of values were dropped as outliers. The minimum, maximum and mean values were then calculated from the remaining values.
 
-\begin{figure}[h]
+At the O0 optimisation level in Figure~\ref{firstparallel} \functionname{stack} performs poorly as it did in the sort benchmark, although this time it still outperforms \functionname{malloc}. Other allocation methods perform as predicted.
+
+At the O1 optimisation level in Figure~\ref{parallelO1}, and similarly to the sort benchmark, \functionname{stack} and \functionname{dynamic} perform roughly the same, while \functionname{external} outperforms both. Unlike the sort benchmark, \functionname{stack} and \functionname{external}'s performance benefits don't completely drop off on large input data.
+
+At the O2 optimisation level and above the compiler was able to determine that the results of the copying in the benchmark functions were not being used, so the entire functions got optimised out other than the \functionname{external} method, which essentially degenerates to a \functionname{memcpy}. Results are as seen in Figure~\ref{lastparallel}
+
+\begin{figure}[hp]
 	\centering
 	\includegraphics[width=0.8\textwidth]{parallel/O0chart}
-	\caption{\functionname{stack} performs poorly again, although this time it still outperforms \functionname{malloc}. Other allocation methods perform as predicted.}\label{firstparallel}
+	\caption{Bounds of performance benchmarks for the different allocation strategies at the O0 optimisation level}\label{firstparallel}
 \end{figure}
 
-\begin{figure}[p]
+\begin{figure}[hp]
 	\centering
 	\includegraphics[width=0.8\textwidth]{parallel/O1chart}
-	\caption{As seen in the sort benchmark, \functionname{stack} and \functionname{dynamic} perform roughly the same, while \functionname{external} outperforms both. Unlike the sort benchmark, \functionname{stack} and \functionname{external}'s performance benefits don't completely drop off on large input data.}
+	\caption{Bounds of performance benchmarks for the different allocation strategies at the O1 optimisation level}\label{parallelO1}
 \end{figure}
 
-\begin{figure}[p]
+\begin{figure}[hp]
 	\centering
 	\includegraphics[width=0.8\textwidth]{parallel/O2chart}
-	\caption{At this optimisation level the compiler was able to determine that the results of the copying in the benchmark functions were not being used, so the entire functions got optimised out other than the \functionname{external} method, which essentially degenerates to a \functionname{memcpy}. Higher optimisation levels yield the same result.}\label{lastparallel}
+	\caption{Bounds of performance benchmarks for the different allocation strategies at the O1 optimisation level}\label{lastparallel}
 \end{figure}
 
 \subsection{Comparison to Predictions}
@@ -133,8 +148,6 @@ The values in the diagrams are taken from a number of runs, from which the top t
 Similarly to the sort benchmark, results mostly matched the predictions. As expected, performance increases were much more significant than in the sort benchmark. This is expected, as the changes made here are similar in principle to replacing a locking algorithm with a wait-free algorithm.
 
 However, the situations in which this sort of performance increase would be possible are quite limited, as programs are not often allocating at such a high rate in parallel.
-
-\pagebreak
 
 \section{Real World Benchmark, \toolname{cURL} Patch}
 
@@ -190,22 +203,28 @@ The values in the diagrams are taken from a number of runs, from which the top t
 
 Values less than 1 outperform the parent commit.
 
+In the real time comparison in Figure~\ref{firstcurl}, nothing varies by more than 0.5\%. The only benchmark that performs better is the one that should perform identically, suggesting that any performance benefit is shadowed by other effects.
+
+The sys time comparison is shown in Figure~\ref{curlsys}. sys time should in theory decrease in the first two cases, as less \malloc{}s should mean less time spent in kernel code (such as \functionname{brk}/\functionname{sbrk}/\functionname{mmap}). Once again, the maximum variation is 0.6\%, but in the wrong direction compared to predictions.
+
+The user time comparison is shown in Figure~\ref{lastcurl}. The llist case should decrease in time thanks to simplified code due to removal of \malloc{}s and use of more efficient library functions (\functionname{calloc} instead of \malloc{} and \functionname{memset}). For the multi-wait case, user time shouldn't really change. This is mostly met, particularly in the llist case.
+
 \begin{figure}[h]
 	\centering
 	\includegraphics[width=0.8\textwidth]{curl/ratio-real}
-	\caption{Nothing varies by more than 0.5\%. The only benchmark that performs better is the one that should perform identically, suggesting that any performance benefit is shadowed by other effects.}\label{firstcurl}
+	\caption{Comparison of real time taken compared to the commit before changes were made}\label{firstcurl}
 \end{figure}
 
 \begin{figure}[p]
 	\centering
 	\includegraphics[width=0.8\textwidth]{curl/ratio-sys}
-	\caption{sys time should in theory decrease in the first two cases, as less \malloc{}s should mean less time spent in kernel code (such as \functionname{brk}/\functionname{sbrk}/\functionname{mmap}). Once again, the maximum variation is 0.6\%, but in the wrong direction compared to predictions.}
+	\caption{Comparison of sys time taken compared to the commit before changes were made}\label{curlsys}
 \end{figure}
 
 \begin{figure}[p]
 	\centering
 	\includegraphics[width=0.8\textwidth]{curl/ratio-user}
-	\caption{The llist case should decrease in time thanks to simplified code due to removal of \malloc{}s and use of more efficient library functions (\functionname{calloc} instead of \malloc{} and \functionname{memset}). For the multi-wait case, user time shouldn't really change. This is mostly met, particularly in the llist case.}\label{lastcurl}
+	\caption{Comparison of user time taken compared to the commit before changes were made}\label{lastcurl}
 \end{figure}
 
 \subsection{Comparison to Predictions}

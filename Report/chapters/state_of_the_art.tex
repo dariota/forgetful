@@ -1,12 +1,4 @@
-This chapter will discuss:
-
-\begin{itemize}
-	\itemsep-0.25em
-	\item The short-list of static analysis platforms
-	\item Other methods to detect the pattern
-	\item Research into performance of allocator methods
-	\item Validation of the project research space
-\end{itemize}
+This chapter will discuss: the short-list of static analysis platforms considered; other methods that can be used to detect the pattern; research into performance of allocator methods; and validation of the project space.
 
 \section{Static Analysis Platforms}
 
@@ -18,7 +10,9 @@ These are discussed in further detail and in retrospect now that the project's r
 
 While \toolname{Frama-C} was an acceptable choice for its extensibility and availability of introductory guides to plug-in development~\cite{framaplug}, finding assistance/documentation for it was relatively difficult, even for basic functionality of \toolname{EVA}.
 
-Perhaps a better choice would have been to modify/extend a static analysis tool with a more active and modern community (\toolname{Frama-C}'s irregular releases consist of dumps of source code rather than open and incremental development~\cite{framagit}, with the first beta release in March 2008~\cite{framahydrogen}), which likely would've made it easier to dig into the codebase even if it wasn't built as intentionally for extensibility.
+\toolname{Frama-C}'s irregular releases consist of dumps of source code rather than open and incremental development~\cite{framagit}, with the first beta release in March 2008~\cite{framahydrogen}. This relatively slow and opaque development makes it harder to approach, and harder to understand the reasoning behind its design choices.
+
+Perhaps a better decision would have been to modify/extend a static analysis tool with a more active and modern community, which likely would've made it easier to dig into the codebase even if it wasn't built as intentionally for extensibility.
 
 \toolname{Frama-C}'s (open source) community is not hugely active, with only a few external plug-ins available~\cite{framapluglist}, and not many plug-ins having been created between its initial release a decade ago and now. In fact, the plug-in list was last updated 5 years ago.
 
@@ -102,7 +96,7 @@ Exact formulae are provided in the paper, parametrisable in terms of: the memory
 
 \subsection{Allocator Replacement}
 
-There are cases where garbage collection can't be used for one reason or another (insufficient timing guarantees for real-time systems for example), so in these cases alternate systems can be used to take advantage of the large proportion of short-lived allocations.
+There are cases where garbage collection can't be used for one reason or another (insufficient timing guarantees to support real-time systems for example), so in these cases alternate systems can be used to take advantage of the large proportion of short-lived allocations.
 
 Barrett and Zorn discuss the use of profiling to determine which allocations are short-lived. In particular, they describe an algorithm for lifetime prediction using a combination of profiling data, allocation site and allocation size which (depending on which program they used to benchmark) correctly predicted the lifetimes of 42–99\% of allocations. Clearly these results vary too widely (and only 4 programs were benchmarked) to be a definitive indicator of whether this method is worthwhile~\cite{predictors}.
 

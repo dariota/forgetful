@@ -137,7 +137,7 @@ A plug-in development guide is provided to aid new developers in the \toolname{F
 
 \subsection{Visitor Pattern}
 
-For any plug-in that doesn't require direct access to the AST for any particular reason, the development guide recommends usage of one of the provided visitor classes built-in to \toolname{Frama-C}.
+For a plug-in that doesn't require direct access to the AST as a whole, rather than the individual nodes, for any particular reason, the development guide recommends usage of one of the provided visitor classes built-in to \toolname{Frama-C}.
 
 These are classes implementing the visitor design pattern, intended for usage by developers who can extend and override only the specific methods they're interested in. The design pattern itself is described as
 
