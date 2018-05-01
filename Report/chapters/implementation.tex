@@ -58,7 +58,7 @@ This is normalised into the following by \toolname{Frama-C}
 
 \lstinputlisting[style=CStyle]{samples/normalised.c}
 
-We note in particular that rewrites are performed in order to avoid multiple operations occurring on a single line, such as splitting out the evaluation of return values and their actual return, or the evaluation of expressions involving function calls and the actual function call. This prevents an arbitrarily complex AST from being constructed.
+We note in particular that rewrites are performed in order to avoid multiple operations occurring on a single line, such as splitting out the evaluation of return values and their actual return, or the evaluation of expressions involving the result of a function call and the actual function call. This prevents an arbitrarily complex AST from being constructed.
 
 The AST as provided to plug-ins to traverse is also annotated. It can be annotated in the source code itself, using \toolname{Frama-C}'s ACSL\footnote{ANSI/ISO C Specification Language, used to formally define function contracts} to add specifications~\cite{framaacsl}, or annotations can be added by other plug-ins as they discover properties of the code~\cite{framaplug}.
 
@@ -145,12 +145,12 @@ These are classes implementing the visitor design pattern, intended for usage by
 	Represent an operation to be performed on the elements of an object structure. Visitor lets you define a new operation without changing the classes of the elements on which it operates.~\cite{gof}
 \end{quote}
 
-The benefit of this pattern is that it allows the easy addition of new operations on the AST, with the downside being that it's difficult to add new types of node to the AST, but given the nature of the AST new types of nodes are rare.
+The benefit of this pattern is that it allows the easy addition of new operations on the AST, with the downside being that it's difficult to add new types of node, but given the nature of the AST new types of nodes are rare.
 
 Concretely, for the development of the plug-in, this means that it can simply extend the in-place visitor (since the plug-in will not modify the AST itself, otherwise it would have to use the copy visitor to avoid corrupting information already attached to the AST~\cite{framaplug}) and override the functions for visiting individual statements and for visiting the function declaration node. \\
 This will allow the plug-in to track which function it's currently in for scoping purposes, and to inspect the contents of statements in order to determine if they contain a \malloc{} or \free{}.
 
-\toolname{Frama-C}'s documentation is limited, with many types having no documentation or referring the reader to either the plug-in development guide or the user guide with no indication of what section within the guides are relevant. As such, determining what purpose certain nodes in the AST served had to be determined through trial and error. For example, the \texttt{Block} node represents a block (such as a loop body) and so contains a list of statements, but the visitor doesn't have to traverse those statements as they're actually duplicated.\\
+\toolname{Frama-C}'s documentation is limited, with many types having no documentation or referring the reader to either the plug-in development guide or the user guide with no indication of what section within the guides are relevant. As such, determining what purpose certain nodes in the AST served had to be determined through trial and error. For example, the \texttt{Block} node represents a block (such as a loop body) and so contains a list of statements, but the visitor doesn't have to traverse the statements within the block as they're actually duplicated and directly visited later.\\
 Trial and error was also the method used to determine which nodes \malloc{} and \free{} could appear in after normalisation of the AST\@.
 
 \subsection{Allocation Tracking}\label{alloctrack}
@@ -192,7 +192,7 @@ This is more complicated than it sounds, as the build process downloaded new sou
 
 \subsubsection{OCaml and \toolname{Frama-C} Learning Curve}
 
-As expected, there was a significant learning curve involved in learning both a new language, OCaml, and a new platform, \toolname{Frama-C}. As OCaml has similarities to languages such as Java and Haskell, some of this learning curve was mitigated by familiarity with those languages. Having no prior experience developing part of or even using a static analysis tool, \toolname{Frama-C} was still difficult but manageable to broach due to both the user manual~\cite{framauser} and the plug-in development guide~\cite{framaplug}.
+As expected, there was a significant learning curve involved in learning both a new language, OCaml, and a new platform, \toolname{Frama-C}. As OCaml has similarities to languages such as Java and Haskell, some of this learning curve was mitigated by familiarity with those languages. Having no prior experience developing part of or even using a static analysis tool, \toolname{Frama-C} was difficult but manageable to broach due to both the user manual~\cite{framauser} and the plug-in development guide~\cite{framaplug}.
 
 \subsubsection{Kernel and Core Plug-in Documentation}
 
@@ -210,7 +210,7 @@ The state of the \toolname{Forgetful} plug-in is most easily communicated by exa
 
 The above code listing produces no output from \toolname{Forgetful}, and the output from \toolname{EVA} indicates that the issue is with the function \functionname{recurse\_and\_free}. In particular, \toolname{EVA} can't determine whether the function terminates as it doesn't currently support recursion. Since \toolname{Forgetful} depends on \toolname{EVA}, it also can't analyse recursive functions.
 
-The following code listing describes inline which allocations are reported as replaceable with stack allocation. The default max allocation size to report on was set to 48 bytes, based on the results discussed in Chapter~\ref{studies}.
+The following code listing describes inline which allocations are reported as replaceable with stack allocation. The default max allocation size to report on was set to 64 bytes, based on the results discussed in Chapter~\ref{studies}.
 
 \lstinputlisting[style=CStyle]{samples/demo.c}
 
